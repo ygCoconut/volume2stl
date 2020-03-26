@@ -2,6 +2,7 @@
 This repo helps you to transform a volume array to a .stl file and then visualize it.
 
 
+# PROTOTYPE A
 ### 1. Transform h5 to stl file
 
 - Download https://github.com/Rhoana/3dxp 
@@ -40,3 +41,29 @@ http://140.247.107.10/donglai/public/js-demo/demo/display_grid.htm
 - Option B:
     - use plots and subplots to arrange images in a grid
     - convert master plot into html.
+    
+
+# PROTOTYPE B
+### 1. Run ibexHelper on .stl volume to display its abstract visualization
+```
+git clone https://github.com/donglaiw/ibexHelper.git
+```
+- install ibexHelper
+- test ibexHelper with seg id: 9494881
+
+- opt=='0': # mesh -> skeleton
+```
+python ~/scriptsAndSoftware/repos/ibexHelper/script/demo.py 0
+```
+- opt=='1': # skeleton -> dense graph
+```
+python ~/scriptsAndSoftware/repos/ibexHelper/script/demo.py 1
+```
+- opt == '2': # reduced graph
+```
+python ~/scriptsAndSoftware/repos/ibexHelper/script/demo.py 2
+```
+- opt == '3': # generate h5 for visualization
+```
+python ~/scriptsAndSoftware/repos/ibexHelper/script/demo.py 3
+```
