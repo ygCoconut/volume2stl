@@ -4,7 +4,7 @@ This repo helps you to transform a volume array to a .stl file and then visualiz
 
 # PROTOTYPE A
 ### 1. Transform h5 to stl file
-
+#### IMPROVEMENT: RUN MARCHING CUBE WITH NEWER METHOD THAN CLASSIC 
 - Download https://github.com/Rhoana/3dxp 
 - Run:
 
@@ -14,23 +14,18 @@ python ~/scriptsAndSoftware/repos/3dxp/PYTHON/all_stl.py --xyz /n/pfister_lab2/L
 
 ### 2. Rotate stl file with PCA:
 ```
-python test_mesh.py
+python PCA_mesh.py
 ```
 
-### 3. Write .json that contains path to .stl directories
-```
-python /n/home00/nwendt/snowjournal/make_json.py  /n/home00/nwendt/snowjournal/stl/
-```
-
-### 4. Get access to x-server:
+### 3. Get access to x-server:
 - e.g. Download .stl files and git repo to local machine
 
-### 5. Run vtkplotlib to obtain .png from .stl
+### 4. Run vtkplotlib to obtain .png from .stl
 - install conda environment for py3
 - run stl2img.py
 
 
-### 6. Visualize with html
+### 5. Visualize with html
 - Display images in a grid:
     - Find way to iterate through images:
 ```

@@ -1,0 +1,19 @@
+<script src="../js/util.js"></script>
+<script>
+// accept variable from url to turn pages
+var pid=parseInt(getUrlParam('pid'));if(isNaN(pid)){pid=0;}
+var nn=["airplane","automobile","bird","cat","deer","dog","frog","horse","ship","truck"];
+var out ='';
+out+='<h1>class_id='+pid+': '+nn[pid]+'</h1>'
+out+='<table border=1>'
+var num_row=3;
+var numP=10;
+for(var i=0;i<numP;i++){
+	if(i%num_row==0){out+='<tr>'}
+	out+='<td>'+(i)+'<br/>'
+	out+='<img height=100 src="../img/'+(pid+1)+'_'+(i+1)+'.png" /></td>'
+	if((i+1)%num_row==0){out+='</tr>'}
+}
+out+='</table>'
+document.write(out)
+</script>
