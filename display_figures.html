@@ -1,17 +1,18 @@
-<script src="../js/util.js"></script>
 <script>
 // accept variable from url to turn pages
-var pid=parseInt(getUrlParam('pid'));if(isNaN(pid)){pid=0;}
-var nn=["airplane","automobile","bird","cat","deer","dog","frog","horse","ship","truck"];
+var nn=['1054780620097.png', '125702772489.png', '152216484115.png', '39761941829.png',
+ '665976730924.png', '947144618502.png', '108925319313.png','1354427132104.png',
+	 '29277617709.png', '5793428278.png', '9185257632.png', '1210562117351.png',
+ '149949611256.png', '32141326561.png', '623882733017.png', '938718828397.png'];
+
 var out ='';
-out+='<h1>class_id='+pid+': '+nn[pid]+'</h1>'
 out+='<table border=1>'
-var num_row=3;
-var numP=10;
+var num_row=10;
+var numP=nn.length;
 for(var i=0;i<numP;i++){
 	if(i%num_row==0){out+='<tr>'}
 	out+='<td>'+(i)+'<br/>'
-	out+='<img height=100 src="../img/'+(pid+1)+'_'+(i+1)+'.png" /></td>'
+	out+='<img height=100 src="xyz_0_0_0_pca/'+nn[i] +'" /></td>'
 	if((i+1)%num_row==0){out+='</tr>'}
 }
 out+='</table>'
