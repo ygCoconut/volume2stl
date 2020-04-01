@@ -82,17 +82,17 @@ def stl_PCA(path_dict, path_dict2=None, pair_mapping=None):
             new_stl.save( path_dict[k].replace('.stl', '_pca.stl') )
         
 if __name__ == '__main__':
-"""
-Returns PCA-rotated instances as .stl files, which allows for maximization of the surface that will be rendered to a picture when the .stl file is plotted.
+    """
+    Returns PCA-rotated instances as .stl files, which allows for maximization of the surface that will be rendered to a picture when the .stl file is plotted.
 
-There are 2 plotting scenarios considered:
-pairs == False: You just want to render individual .stl files.
-pairs == True: You want to render muliple instances with the same rotation, e.g. mitos contained in dendrites should have the same oritentation as the dendrite they belong to.
+    There are 2 plotting scenarios considered:
+    pairs == False: You just want to render individual .stl files.
+    pairs == True: You want to render muliple instances with the same rotation, e.g. mitos contained in dendrites should have the same oritentation as the dendrite they belong to.
 
-if pairs is false, each .stl file can be calculated individually with its own pca
-if pairs is true, you need to specify an array containing the matched pairs that should be rotated according to the same pca. The first of the 2 paths specified for the pairs corresponds to the fist column of the matched pairs array and will be the object of the pca, while the same rotation will be applied to the second pair element.
+    if pairs is false, each .stl file can be calculated individually with its own pca
+    if pairs is true, you need to specify an array containing the matched pairs that should be rotated according to the same pca. The first of the 2 paths specified for the pairs corresponds to the fist column of the matched pairs array and will be the object of the pca, while the same rotation will be applied to the second pair element. 
+    """
 
-"""
     print('start')
     pairs = True
 
