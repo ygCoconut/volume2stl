@@ -4,15 +4,22 @@ This repo helps you to transform a volume array to a .stl file and then visualiz
 
 # PROTOTYPE A
 ### 1. Transform h5 to stl file
-#### IMPROVEMENT: RUN MARCHING CUBE WITH NEWER METHOD THAN CLASSIC 
+- [ ] IMPROVEMENT: RUN MARCHING CUBE WITH NEWER METHOD THAN CLASSIC 
 - Download https://github.com/Rhoana/3dxp 
+- Get List of matching ID pairs of mitos and dendrites and parse it: 
+```
+import numpy as np
+idlist = np.loadtxt('seg_spiny_v2.txt')
+print(":".join([str(int(i)) for i in idlist]))
+```
 - Run:
-
 ```
 python ~/scriptsAndSoftware/repos/3dxp/PYTHON/all_stl.py --xyz /n/pfister_lab2/Lab/donglai/mito/db/30um_human/seg_64nm.h5 ./ -l listof_ids.txt
 ```
 
+
 ### 2. Rotate stl file with PCA:
+- Do you want to rotate mitochondria and dendrites that are matching ? The PCA rotation matrix needs to be the same for both instances of the mito-dendrite pair.
 ```
 python PCA_mesh.py
 ```
@@ -22,9 +29,18 @@ python PCA_mesh.py
 
 ### 4. Run vtkplotlib to obtain .png from .stl
 - install conda environment for py3
-- run stl2img.py
+- run create_figures.py
 
-
+### TODO For the figures:
+    - make background transparent
+    - include mitos into cells,donglai has mapping
+    - try out pyqt5 of vtkpll
+        - bg transparent.
+        - computation without opening possible?
+        - put 2 elements in 1 plot
+        - make neuron slightly transparent
+        - colors for both
+        
 ### 5. Visualize with html
 - Display images in a grid:
     - Find way to iterate through images:
