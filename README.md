@@ -55,7 +55,7 @@ http://140.247.107.10/donglai/public/js-demo/demo/display_grid.htm
     
 
 # PROTOTYPE B
-### 1. Run ibexHelper on .stl volume to display its abstract visualization
+### 1. Run ibexHelper on .stl volume to skeletonize a given instance.
 ```
 git clone https://github.com/donglaiw/ibexHelper.git
 ```
@@ -78,3 +78,22 @@ python ~/scriptsAndSoftware/repos/ibexHelper/script/demo.py 2
 ```
 python ~/scriptsAndSoftware/repos/ibexHelper/script/demo.py 3
 ```
+
+### 2. Visualize the skeleton  point cloud in neuroglancer:
+```
+SCALE =[2, 2, 2]    
+ibexpath = '~/snowjournal/volume2stl/results/' + '1499496/'
+
+# point cloud
+print('load ibex nodes')
+node = h5py.File(ibexpath + 'node_pos.h5', 'r')
+pts = np.array(node['main'])
+with viewer.txn() as s:
+    s.layers.append(name='1499496nodes_210', layer=neuroglancer.PointAnnotationLayer(points=SCALE*pts[:,np.array([2,1,0])]))
+```
+
+### 3. Find dendrite main axis:
+```
+python longest_axis.py
+```    
+save them with prev code of demo.py, opt == 1 method
