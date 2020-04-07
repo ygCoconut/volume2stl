@@ -36,30 +36,7 @@ def draw_graph(G, pos=None, save_name=''):
     plt.show()
     return pos
 
-def longest_axis_exhaustive_old(G):
-    """
-    Info: Search algorithm to find longest axis in a graph. 
-    Tries all combinations without any heuristics.
-    input: nx.Graph
-    output: [list] of all paths between all nodes, [list] of length of each path
-    
-    """
-    path_list = []
-    path_length = []
-    for source in G.nodes:
-        for target in G.nodes:
-            sh_p = nx.shortest_path(G, source, target)
-            sh_p_l = nx.shortest_path_length(G, source, target)
-            path_list.append(sh_p)
-            path_length.append(sh_p_l)
-    import pdb;pdb.set_trace()
-    # %% get longest path:
-    node_list = path_list[np.argmax(path_length)]
-    max_length = path_length[np.argmax(path_length)]
-    SG = G.subgraph(node_list)
-    return G, node_list, max_length
-
-def longest_axis_exhaustive(G, return_extra=True):
+def longest_axis_exhaustive_alternative(G, return_extra=True):
     """
     Info: Search algorithm to find longest axis in a graph. 
     Tries all combinations without any heuristics.
@@ -78,80 +55,86 @@ def longest_axis_exhaustive(G, return_extra=True):
                     max_length = length
                     longest_path = [source, target]
             except: pass
+    
     thickness =  G[longest_path[0]][longest_path[1]]['thick']
-    import pdb;pdb.set_trace()
-    if True:
+    SG = G.subgraph(G[longest_path[0]][longest_path[1]]['path'])
+    if return_extra == True: return SG, max_length, thickness
+    else: return SG
+
+def longest_axis_exhaustive(G):
+    """
+    Info: Search algorithm to find longest axis in a graph. 
+    Tries all combinations without any heuristics.
+    input: nx.Graph
+    output: [list] of all paths between all nodes, [list] of length of each path
+    
+    """
+    path_list = []
+    path_length = []
+    node_pairs = []
+    for source in G.nodes:
+        for target in G.nodes:
+            sh_p = nx.shortest_path(G, source, target)
+            sh_p_l = nx.shortest_path_length(G, source, target)
+            path_list.append(sh_p)
+            path_length.append(sh_p_l)
+            node_pairs.append([source, target])
+            
+    nbunch = path_list[np.argmax(path_length)]
+    SG = G.subgraph(nbunch)
+    return SG, np.max(path_length), nbunch, node_pairs[np.argmax(path_length)]
+
+def extract_main_axis_from_skeleton(dendrite_id, dendrite_folder, seg_fn,
+                                    res, write=True, shrink=False):
+
+    skel = ReadSkeletons(dendrite_folder,
+                         skeleton_algorithm='thinning',
+                         downsample_resolution=res,
+                         read_edges=True)[1]
+
+    print('generate dt for edge width')
+    seg = ReadH5(seg_fn, 'main')
+    sz = seg.shape
+#     bb = GetBbox(seg>0)
+    bb = GetBbox(seg==int(dendrite_id))
+
+    seg_b = seg[bb[0]:bb[1]+1,bb[2]:bb[3]+1,bb[4]:bb[5]+1]
+    dt = distance_transform_cdt(seg_b, return_distances=True)
+    new_graph, wt_dict, th_dict, ph_dict = GetGraphFromSkeleton(skel,
+        dt=dt, dt_bb=[bb[x] for x in [0,2,4]], modified_bfs=modified_bfs)
+
+    edge_list = GetEdgeList(new_graph, wt_dict, th_dict, ph_dict)
+    G = nx.Graph(shape=sz)
+    # add edge attributes
+    G.add_edges_from(edge_list)
+
+    if shrink == True: #shrink graph size
+        edgTh = [40,1] # threshold
+        n0 = len(G.nodes())
+        G = ShrinkGraph_v2(G, threshold=edgTh)
+        n1 = len(G.nodes())
+        print('#nodes: %d -> %d'%(n0,n1))
+
+    # %% get longest axis (main axis):
+#     SG, max_length, thickness = longest_axis_exhaustive(G)
+    SG, nodes, path_length, endnodes = longest_axis_exhaustive(G)
+
+    if write == True:
+        # get array containing all selected points of the skeleton,
+        # so we can display them in neuroglancer
         print('get new node positions based on skeleton')
-        nodes = G[longest_path[0]][longest_path[1]]['path']
         node_pos = np.stack(skel.get_nodes()).astype(int)
 
-        point_cloud = np.zeros( (len(nodes), 3), int )
-        for i,n in enumerate(nodes):
+        point_cloud = np.zeros( (len(SG.nodes), 3), int )
+        for i,n in enumerate(SG.nodes):
             point_cloud[i] = node_pos[n] #node pos allows relabel mapping trick
 
         if shrink == True:
             WriteH5(dendrite_folder+'node_pos_longaxis_shrinked2.h5', point_cloud)
         else:
             WriteH5(dendrite_folder+'node_pos_longaxis2.h5', point_cloud)
-            
-            
-#         skel = ReadSkeletons(dendrite_folder,skeleton_algorithm='thinning',downsample_resolution=res,read_edges=True)[1]
-            
-            
-    SG = G.subgraph(G[longest_path[0]][longest_path[1]]['path'])
-    if return_extra == True: return SG, max_length, thickness
-    else: return SG
 
-def extract_main_axis_from_skeleton(dendrite_id, dendrite_folder, seg_fn,
-                                    res, write=True, shrink=False):
-    
-        skel = ReadSkeletons(dendrite_folder,
-                             skeleton_algorithm='thinning',
-                             downsample_resolution=res,
-                             read_edges=True)[1]
-
-        print('generate dt for edge width')
-        seg = ReadH5(seg_fn, 'main')
-        sz = seg.shape
-    #     bb = GetBbox(seg>0)
-        bb = GetBbox(seg==int(dendrite_id))
-
-        seg_b = seg[bb[0]:bb[1]+1,bb[2]:bb[3]+1,bb[4]:bb[5]+1]
-        dt = distance_transform_cdt(seg_b, return_distances=True)
-        new_graph, wt_dict, th_dict, ph_dict = GetGraphFromSkeleton(skel,
-            dt=dt, dt_bb=[bb[x] for x in [0,2,4]], modified_bfs=modified_bfs)
-
-        edge_list = GetEdgeList(new_graph, wt_dict, th_dict, ph_dict)
-        G = nx.Graph(shape=sz)
-        # add edge attributes
-        G.add_edges_from(edge_list)
-        
-        if shrink == True: #shrink graph size
-            edgTh = [40,1] # threshold
-            n0 = len(G.nodes())
-            G = ShrinkGraph_v2(G, threshold=edgTh)
-            n1 = len(G.nodes())
-            print('#nodes: %d -> %d'%(n0,n1))
-            
-        # %% get longest axis (main axis):
-        SG, max_length, thickness = longest_axis_exhaustive(G)
-
-        if write == True:
-            # get array containing all selected points of the skeleton,
-            # so we can display them in neuroglancer
-            print('get new node positions based on skeleton')
-            node_pos = np.stack(skel.get_nodes()).astype(int)
-
-            point_cloud = np.zeros( (len(SG.nodes), 3), int )
-            for i,n in enumerate(SG.nodes):
-                point_cloud[i] = node_pos[n] #node pos allows relabel mapping trick
-
-            if shrink == True:
-                WriteH5(dendrite_folder+'node_pos_longaxis_shrinked2.h5', point_cloud)
-            else:
-                WriteH5(dendrite_folder+'node_pos_longaxis2.h5', point_cloud)
-        
-        return SG, G
+    return SG
 
 def edge_length_and_thickness(G, node1, node2):
     return G[node1][node2]['weight'], G[node1][node2]['thick'] 
@@ -165,8 +148,8 @@ if __name__=='__main__':
     res = [60,64,64] # z,y,x resolution of skeleton
     seg_fn = '/n/pfister_lab2/Lab/donglai/mito/db/30um_human/seg_64nm.h5'
     
-    SG, G = extract_main_axis_from_skeleton(dendrite_id, dendrite_folder,
-                            seg_fn, res, write=True, shrink = True)
+    G = extract_main_axis_from_skeleton(dendrite_id, dendrite_folder,
+                            seg_fn, res, write=True, shrink = False)
     # display nx graph figures
     display = False
     if display == True:
