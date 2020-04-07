@@ -52,7 +52,7 @@ def longest_axis_exhaustive_old(G):
             sh_p_l = nx.shortest_path_length(G, source, target)
             path_list.append(sh_p)
             path_length.append(sh_p_l)
-
+    import pdb;pdb.set_trace()
     # %% get longest path:
     node_list = path_list[np.argmax(path_length)]
     max_length = path_length[np.argmax(path_length)]
@@ -67,18 +67,37 @@ def longest_axis_exhaustive(G, return_extra=True):
     output: Graph
         optional: [float] length of longest path, [float] thickness of longest path
     """
+    print('compute longest axis (exhaustive)')
     longest_path = []
     max_length = -1
     for source in G.nodes:
         for target in G.nodes:
             try:
                 length = G[source][target]['weight']
-                if length > longest:
+                if length > max_length:
                     max_length = length
                     longest_path = [source, target]
             except: pass
-            
     thickness =  G[longest_path[0]][longest_path[1]]['thick']
+    import pdb;pdb.set_trace()
+    if True:
+        print('get new node positions based on skeleton')
+        nodes = G[longest_path[0]][longest_path[1]]['path']
+        node_pos = np.stack(skel.get_nodes()).astype(int)
+
+        point_cloud = np.zeros( (len(nodes), 3), int )
+        for i,n in enumerate(nodes):
+            point_cloud[i] = node_pos[n] #node pos allows relabel mapping trick
+
+        if shrink == True:
+            WriteH5(dendrite_folder+'node_pos_longaxis_shrinked2.h5', point_cloud)
+        else:
+            WriteH5(dendrite_folder+'node_pos_longaxis2.h5', point_cloud)
+            
+            
+#         skel = ReadSkeletons(dendrite_folder,skeleton_algorithm='thinning',downsample_resolution=res,read_edges=True)[1]
+            
+            
     SG = G.subgraph(G[longest_path[0]][longest_path[1]]['path'])
     if return_extra == True: return SG, max_length, thickness
     else: return SG
@@ -128,9 +147,9 @@ def extract_main_axis_from_skeleton(dendrite_id, dendrite_folder, seg_fn,
                 point_cloud[i] = node_pos[n] #node pos allows relabel mapping trick
 
             if shrink == True:
-                WriteH5(dendrite_folder+'node_pos_longaxis_shrinked.h5', point_cloud)
+                WriteH5(dendrite_folder+'node_pos_longaxis_shrinked2.h5', point_cloud)
             else:
-                WriteH5(dendrite_folder+'node_pos_longaxis.h5', point_cloud)
+                WriteH5(dendrite_folder+'node_pos_longaxis2.h5', point_cloud)
         
         return SG, G
 
@@ -147,7 +166,7 @@ if __name__=='__main__':
     seg_fn = '/n/pfister_lab2/Lab/donglai/mito/db/30um_human/seg_64nm.h5'
     
     SG, G = extract_main_axis_from_skeleton(dendrite_id, dendrite_folder,
-                            seg_fn, res, write=True, shrink = False)
+                            seg_fn, res, write=True, shrink = True)
     # display nx graph figures
     display = False
     if display == True:
