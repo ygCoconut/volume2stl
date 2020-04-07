@@ -1,0 +1,73 @@
+<script src="../js/jquery-1.7.1.min.js"></script>
+1. focus level: F <input type="text" id="fid" size=3> (values from [-45,-30,-15,0,15,30,45])<br/>
+2. segment starting IDs: <input type="text" id="seg" size=50> (separated by comma)
+<div id="img"></div>
+
+<script>
+var tt=[1];
+var pref='F0_05/'
+var seg_val='1,66,98,129,135,172,191,222,277'
+//var seg_val='1,66,98,129,130,135,186,214'
+
+var num=351
+var numCol=20
+
+var d0="D2016.01.08_S0973_I313_WELL01/";
+var d1="D2016.01.08_S0973_I313_WELL01_RUN"
+function getImName(im_id){
+    var fn=d0+pref+d1;
+    if(im_id<10){
+        fn+='00'+im_id;
+    }else if(im_id<100){
+        fn+='0'+im_id;
+    }else{
+        fn+=im_id;
+    }
+    return fn+'.JPG'
+}
+
+function update(){
+	var out=""
+	out+="<table border=1>"
+	out+="<tr><td>seg ID</td><td>frame ID</td><td>images</td></tr>"
+	var lt=1;
+	for(i=0;i<tt.length;i++){
+		if(i==tt.length-1){lt=num;}else{lt=tt[i+1]-1}
+		out+="<tr><td>"+(i+1)+"</td><td>"+tt[i]+"-"+(lt)+"</td><td>"
+		out+='<table>'
+		for(j=tt[i];j<lt+1;j++){
+			if ((j-tt[i])%numCol==0){out+='<tr><td>'}
+			out+='<img height=100 src="'+getImName(j)+'">'
+			if ((j-tt[i]+1)%numCol==0){out+='</td></tr>'}
+		}
+		if ((lt-tt[i]+1)%numCol!=0){out+='</td></tr>'}
+		out+='</table>'
+		out+="</td></tr>"
+	}
+	out+="<table>"
+	$("#img").html(out)
+}
+function update_tt(val){
+	tt = val.split(",");
+	for (a in tt){
+		tt[a] = parseInt(tt[a]);
+	}
+        update();
+}
+function update_f(val){
+	pref='F'+val+'_05/'
+        update();
+}
+$("#seg").change(function(){
+        update_tt($(this).val());
+   });
+$("#fid").change(function(){
+	update_f($(this).val())
+   });
+
+// init
+$('#fid').val(0)
+$('#seg').val(seg_val)
+update_tt(seg_val);
+</script>
+

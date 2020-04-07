@@ -13,10 +13,10 @@ import numpy as np
 import networkx as nx
 from scipy.ndimage.morphology import distance_transform_cdt
 import matplotlib.pyplot as plt
+import networkx as nx
 
 
 def load_graph(out_folder, bfs):
-    import networkx as nx
     G = nx.read_gpickle(out_folder+'graph-%s.obj'%(bfs))
     n0 = len(G.nodes())
 #     G = ShrinkGraph_v2(G, threshold=edgTh)
@@ -36,7 +36,7 @@ def draw_graph(G, pos=None, save_name=''):
     plt.show()
     return pos
 
-def longest_axis_exhaustive(G):
+def longest_axis_exhaustive_old(G):
     """
     Info: Search algorithm to find longest axis in a graph. 
     Tries all combinations without any heuristics.
@@ -53,7 +53,35 @@ def longest_axis_exhaustive(G):
             path_list.append(sh_p)
             path_length.append(sh_p_l)
 
-    return path_list, path_length
+    # %% get longest path:
+    node_list = path_list[np.argmax(path_length)]
+    max_length = path_length[np.argmax(path_length)]
+    SG = G.subgraph(node_list)
+    return G, node_list, max_length
+
+def longest_axis_exhaustive(G, return_extra=True):
+    """
+    Info: Search algorithm to find longest axis in a graph. 
+    Tries all combinations without any heuristics.
+    input: nx.Graph
+    output: Graph
+        optional: [float] length of longest path, [float] thickness of longest path
+    """
+    longest_path = []
+    max_length = -1
+    for source in G.nodes:
+        for target in G.nodes:
+            try:
+                length = G[source][target]['weight']
+                if length > longest:
+                    max_length = length
+                    longest_path = [source, target]
+            except: pass
+            
+    thickness =  G[longest_path[0]][longest_path[1]]['thick']
+    SG = G.subgraph(G[longest_path[0]][longest_path[1]]['path'])
+    if return_extra == True: return SG, max_length, thickness
+    else: return SG
 
 def extract_main_axis_from_skeleton(dendrite_id, dendrite_folder, seg_fn,
                                     res, write=True, shrink=False):
@@ -86,10 +114,8 @@ def extract_main_axis_from_skeleton(dendrite_id, dendrite_folder, seg_fn,
             n1 = len(G.nodes())
             print('#nodes: %d -> %d'%(n0,n1))
             
-        # %% get longest path:
-        paths, length =longest_axis_exhaustive(G)
-        nbunch = paths[np.argmax(length)]
-        SG = G.subgraph(nbunch)
+        # %% get longest axis (main axis):
+        SG, max_length, thickness = longest_axis_exhaustive(G)
 
         if write == True:
             # get array containing all selected points of the skeleton,
@@ -108,18 +134,21 @@ def extract_main_axis_from_skeleton(dendrite_id, dendrite_folder, seg_fn,
         
         return SG, G
 
+def edge_length_and_thickness(G, node1, node2):
+    return G[node1][node2]['weight'], G[node1][node2]['thick'] 
+    
 if __name__=='__main__':
 # if opt=='4': # longest graph path
     print('start')
     dendrite_id = 1499496
-    out_folder = 'results/{}/'.format(dendrite_id)
+    dendrite_folder = 'results/{}/'.format(dendrite_id)
     bfs = 'bfs'; modified_bfs=False 
     res = [60,64,64] # z,y,x resolution of skeleton
     seg_fn = '/n/pfister_lab2/Lab/donglai/mito/db/30um_human/seg_64nm.h5'
     
-    SG, G = extract_main_axis_from_skeleton(dendrite_id, out_folder,
+    SG, G = extract_main_axis_from_skeleton(dendrite_id, dendrite_folder,
                             seg_fn, res, write=True, shrink = False)
-
+    # display nx graph figures
     display = False
     if display == True:
         pos = draw_graph(G, save_name='G_short.png')
