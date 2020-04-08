@@ -21,31 +21,6 @@ def blockPrint(): # Disable print
 def enablePrint(): # Restore print
     sys.stdout = sys.__stdout__
 
-def load_graph(out_folder, bfs):
-    G = nx.read_gpickle(out_folder+'graph-%s.obj'%(bfs))
-    n0 = len(G.nodes())
-#     G = ShrinkGraph_v2(G, threshold=edgTh)
-    n1 = len(G.nodes())
-    print('#nodes: %d -> %d'%(n0,n1))
-    return G
-
-def draw_graph(G, pos=None, save_name=''):
-    """
-    How to plot nx Graphs:
-    pos = draw_graph(G, save_name='G.png') # same pos for both
-    _ = draw_graph(SG, pos=pos, save_name='G_subgraph.png')
-    """
-    if pos==None:
-        pos = nx.spring_layout(G)
-    nx.draw(G, pos, cmap = plt.get_cmap('jet'))
-#     nx.draw_networkx_nodes(G, pos, cmap=plt.get_cmap('jet'), 
-#                        node_color = values, node_size = 500)
-    nx.draw_networkx_labels(G, pos)
-    if save_name: 
-        plt.savefig(save_name)
-    plt.show()
-    return pos
-
 def longest_axis_dijkstra(G):
 #     Todo: implement with nx.dijkstra_path
     pass
