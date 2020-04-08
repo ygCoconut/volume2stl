@@ -14,7 +14,12 @@ import networkx as nx
 from scipy.ndimage.morphology import distance_transform_cdt
 import matplotlib.pyplot as plt
 import networkx as nx
+from tqdm import tqdm
 
+def blockPrint(): # Disable print
+    sys.stdout = open(os.devnull, 'w')
+def enablePrint(): # Restore print
+    sys.stdout = sys.__stdout__
 
 def load_graph(out_folder, bfs):
     G = nx.read_gpickle(out_folder+'graph-%s.obj'%(bfs))
@@ -126,23 +131,45 @@ def edge_length_and_thickness(G, node1, node2):
     thickness = nx.shortest_path_length(G, node1, node2, weight='thick')
     thickness /= length
     return length, thickness
-    
+
 if __name__=='__main__':
 # if opt=='4': # longest graph path
     print('start')
-    dendrite_id = 1499496
-    dendrite_folder = 'results/{}/'.format(dendrite_id)
+    
     bfs = 'bfs'; modified_bfs=False 
     res = [60,64,64] # z,y,x resolution of skeleton
     seg_fn = '/n/pfister_lab2/Lab/donglai/mito/db/30um_human/seg_64nm.h5'
     
-    # get main axis:
-    G, nodeends = extract_main_axis_from_skeleton(dendrite_id, dendrite_folder,
-                            seg_fn, res, write=True, shrink = False)
+    seg = np.array(h5py.File(seg_fn, 'r')['main'])
+    dendrite_ids = np.loadtxt('mito_len500_bead_pair.txt', int)[:,1]
+    lookuptable = np.zeros((dendrite_ids.shape[0], 3))
     
-    # get average thickness and length
-    length, thickness = edge_length_and_thickness(G, nodeends[0], nodeends[1])
+    for i, did in tqdm(enumerate(dendrite_ids)):
+        blockPrint()
+        dendrite_folder = 'results/{}/'.format(did)
+
+        CreateSkeleton(seg==did, dendrite_folder, res, res)
+        # get main axis:
+        G, nodeends = extract_main_axis_from_skeleton(did, dendrite_folder,
+                                seg_fn, res, write=True, shrink = False)
+
+        # get average thickness and length
+        length, thickness = edge_length_and_thickness(G, nodeends[0], nodeends[1])
+
+        lookuptable[i] = [did, thickness, length]
+        np.savetxt('lookuptable.txt', lookuptable,
+                   header = 'dendrite id, thickness, length',
+                   fmt=['%d', '%f', '%f'])
+        
+        enablePrint()
     
-    txt = [dendrite_id, thickness, length]
-    np.savetxt(txt, header = 'id, thickness, length')
+    lot_s = lookuptable[np.argsort(-lookuptable[:,1])]
+    np.savetxt('lookuptable.txt', lot_s,
+           header = 'dendrite id, thickness, length',
+           fmt=['%d', '%f', '%f'])
     print('done')
+
+# use the following to print all the thicknesses as a list
+#     ','.join([str(float(i)) for i in lot_s[:,1]])
+    
+    
