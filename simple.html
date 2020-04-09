@@ -1,0 +1,27 @@
+<script type="text/javascript">
+
+var images = ['1054780620097.png', '149949611256.png', '5793428278.png',
+'947144618502.png', '108925319313.png',  '152216484115.png', '623882733017.png',
+ '1210562117351.png', '29277617709.png', '665976730924.png', '125702772489.png',
+ '32141326561.png', '9185257632.png', '1354427132104.png', '39761941829.png',
+ '938718828397.png'];
+
+var root = 'figures/xyz_0_0_0_pca_mito_dendrite_pairs/'
+var out = ''
+// var newimg = '<img height=50 src="'+ root + images[0] +'" />'
+
+out += '<table><tr>'
+out += '<table border=1>'
+num_cols = 4
+// loop over images
+for (var i = 0; i < images.length; i++) {
+  if (i%num_cols == 0) {
+    out += '</tr><tr>'
+  }
+  out += '<td>'+(i+1)+'<br><img height=150 src="'+ root + images[i] +'" /></td>'
+}
+
+out += '</tr></table>'
+
+document.write(out)
+</script>
