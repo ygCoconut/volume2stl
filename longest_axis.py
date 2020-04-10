@@ -116,12 +116,16 @@ if __name__=='__main__':
     seg_fn = '/n/pfister_lab2/Lab/donglai/mito/db/30um_human/seg_64nm.h5'
     
     seg = np.array(h5py.File(seg_fn, 'r')['main'])
-    dendrite_ids = np.loadtxt('mito_len500_bead_pair.txt', int)[:,1]
+#     dendrite_ids = np.loadtxt('mito_len500_bead_pair.txt', int)[:,1]
+    dendrite_ids = np.loadtxt('seg_spiny_v2.txt', int)
+    
+    
+    
     lookuptable = np.zeros((dendrite_ids.shape[0], 3))
     
-    for i, did in tqdm(enumerate(dendrite_ids)):
+    for i, did in enumerate(tqdm(dendrite_ids)):
         blockPrint()
-        dendrite_folder = 'results/{}/'.format(did)
+        dendrite_folder = 'results_spines/{}/'.format(did)
 
         CreateSkeleton(seg==did, dendrite_folder, res, res)
         # get main axis:
@@ -146,5 +150,6 @@ if __name__=='__main__':
 
 # use the following to print all the thicknesses as a list
 #     ','.join([str(float(i)) for i in lot_s[:,1]])
+# ','.join([str(int(i)) for i in lot_s[:,0]]) #get ids
     
     

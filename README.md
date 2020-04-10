@@ -3,7 +3,20 @@ This repo helps you to transform a volume array to a .stl file and then visualiz
 
 
 # PROTOTYPE A
-### 1. Transform h5 to stl file
+
+0 Preprocess segments:
+-
+- specify segments you want to process
+- dilate slightly the segments
+- create mask for dilation.
+- np.unique(my_masked_id) --> select only part with biggest uc
+- eliminates ouliers too disconnected/far from main structure
+```
+python preprocess_segments.py
+```
+
+1 Transform h5 to stl file
+-
 - [ ] IMPROVEMENT: RUN MARCHING CUBE WITH NEWER METHOD THAN CLASSIC 
 - Download https://github.com/Rhoana/3dxp 
 - Get List of matching ID pairs of mitos and dendrites and parse it: 
@@ -18,16 +31,19 @@ python ~/scriptsAndSoftware/repos/3dxp/PYTHON/all_stl.py --xyz /n/pfister_lab2/L
 ```
 
 
-### 2. Rotate stl file with PCA:
+2 Rotate stl file with PCA:
+-
 - Do you want to rotate mitochondria and dendrites that are matching ? The PCA rotation matrix needs to be the same for both instances of the mito-dendrite pair.
 ```
 python PCA_mesh.py
 ```
 
-### 3. Get access to x-server:
+3 Get access to x-server:
+-
 - e.g. Download .stl files and git repo to local machine
 
-### 4. Run vtkplotlib to obtain .png from .stl
+4 Run vtkplotlib to obtain .png from .stl
+-
 - install conda environment for py3
 - run create_figures.py
 
@@ -41,7 +57,8 @@ python PCA_mesh.py
         - make neuron slightly transparent
         - colors for both
         
-### 5. Visualize with html
+5 Visualize with html
+-
 - Display images in a grid:
     - Find way to iterate through images:
 ```
