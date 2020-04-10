@@ -97,14 +97,14 @@ if __name__ == '__main__':
     pairs = True
 
     if pairs == False:
-        dendrite_paths = get_stl_paths('/n/home00/nwendt/snowjournal/volume2stl/stl_mitos_dendrites_length_500/stl_dendrites')
+        dendrite_paths = get_stl_paths('/n/home00/nwendt/snowjournal/volume2stl/stl_mitos_dendrites_length_500/stl_dendrites_nocrumbs')
         stl_PCA(dendrite_paths)
 
-        mito_paths = get_stl_paths('/n/home00/nwendt/snowjournal/volume2stl/stl_mitos_dendrites_length_500/stl_mitos')
-        stl_PCA(mito_paths)
+#         mito_paths = get_stl_paths('/n/home00/nwendt/snowjournal/volume2stl/stl_mitos_dendrites_length_500/stl_mitos')
+#         stl_PCA(mito_paths)
         
     else:
-        dendrite_paths = get_stl_paths('/n/home00/nwendt/snowjournal/volume2stl/stl_mitos_dendrites_length_500/stl_dendrites')
+        dendrite_paths = get_stl_paths('/n/home00/nwendt/snowjournal/volume2stl/stl_mitos_dendrites_length_500/stl_dendrites_nocrumbs')
         mito_paths = get_stl_paths('/n/home00/nwendt/snowjournal/volume2stl/stl_mitos_dendrites_length_500/stl_mitos')
         
         # mito-id, seg-id  -->   seg-id, mito-id

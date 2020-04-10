@@ -27,9 +27,8 @@ print(":".join([str(int(i)) for i in idlist]))
 ```
 - Run:
 ```
-python ~/scriptsAndSoftware/repos/3dxp/PYTHON/all_stl.py --xyz /n/pfister_lab2/Lab/donglai/mito/db/30um_human/seg_64nm.h5 ./ -l listof_ids.txt
+python ~/scriptsAndSoftware/repos/3dxp/PYTHON/all_stl.py --xyz /n/pfister_lab2/Lab/nils/snowproject/seg_64nm_maindendrite.h5 ./ -l 10547806:3214132:10892531:3976194:9471446:12105621:13544271:6238827:6659767:9387188:918525:15221648:5793428:1499496:12570277:2927761
 ```
-
 
 2 Rotate stl file with PCA:
 -
@@ -41,11 +40,18 @@ python PCA_mesh.py
 3 Get access to x-server:
 -
 - e.g. Download .stl files and git repo to local machine
+```
+# locally:
+scp -r \
+nwendt@login.rc.fas.harvard.edu:/n/home00/nwendt/snowjournal/volume2stl/stl_mitos_dendrites_length_500 ./
+```
 
 4 Run vtkplotlib to obtain .png from .stl
 -
 - install conda environment for py3
-- run create_figures.py
+```
+python create_figures.py
+```
 
 ### TODO For the figures:
     - make background transparent

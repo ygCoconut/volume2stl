@@ -107,20 +107,28 @@ def edge_length_and_thickness(G, node1, node2):
     thickness /= length
     return length, thickness
 
+def get_spines(G):
+    nodes = G.nodes
+    
+    G.remove_node()
+
+    components = [len(c) for c in sorted(nx.connected_components(G), key=len, reverse=True)]
+
+    
+    for nodes in G.nodes:
+
 if __name__=='__main__':
 # if opt=='4': # longest graph path
     print('start')
     
     bfs = 'bfs'; modified_bfs=False 
     res = [60,64,64] # z,y,x resolution of skeleton
-    seg_fn = '/n/pfister_lab2/Lab/donglai/mito/db/30um_human/seg_64nm.h5'
+    seg_fn = '/n/pfister_lab2/Lab/donglai/mito/db/30um_human/seg_64nm.h5' # crumbs
+    seg_fn = '/Lab/nils/snowproject/seg_64nm_maindendrite.h5' # no crumbs
     
     seg = np.array(h5py.File(seg_fn, 'r')['main'])
 #     dendrite_ids = np.loadtxt('mito_len500_bead_pair.txt', int)[:,1]
     dendrite_ids = np.loadtxt('seg_spiny_v2.txt', int)
-    
-    
-    
     lookuptable = np.zeros((dendrite_ids.shape[0], 3))
     
     for i, did in enumerate(tqdm(dendrite_ids)):
@@ -131,6 +139,9 @@ if __name__=='__main__':
         # get main axis:
         G, nodeends = extract_main_axis_from_skeleton(did, dendrite_folder,
                                 seg_fn, res, write=True, shrink = False)
+        
+        #get spines of the main axis dendrite:
+        G_list = get_spines(G)
 
         # get average thickness and length
         length, thickness = edge_length_and_thickness(G, nodeends[0], nodeends[1])
