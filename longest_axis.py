@@ -119,14 +119,20 @@ def edge_length_and_thickness(G, node1, node2):
     length = nx.shortest_path_length(G, node1, node2, weight='weight')
     # assumption for thickness: path is unique
     thickness = nx.shortest_path_length(G, node1, node2, weight='thick')
-    thickness /= length
-    return length, thickness
+    print(thickness, length)
+    print(G.nodes)
+    #length can be 0 if only 1 node
+    # todo: add root node 
+    try:
+        thickness /= length
+        return length, thickness
+    except:
+        return 0, 0
 
-
-def get_spines(G, mainaxis_nodes):
+def get_spines(Gsp, mainaxis_nodes):
     "remove main-axis nodes from graph, return list of unconnected subgraphs"
-    for node in mainaxis_nodes:
-        G.remove_node(node)
+    for node in list(mainaxis_nodes):
+        Gsp.remove_node(node)
 
     graphs = list(nx.connected_component_subgraphs(G))
     return graphs # graph_list
@@ -144,7 +150,7 @@ if __name__=='__main__':
 #     dendrite_ids = np.loadtxt('mito_len500_bead_pair.txt', int)[:,1]
     dendrite_ids = np.loadtxt('seg_spiny_v2.txt', int)
     lookuptable = np.zeros((dendrite_ids.shape[0], 5))
-    did = 1499496
+#     did = 1499496
     for i, did in enumerate(tqdm(dendrite_ids)):
         blockPrint()
         dendrite_folder = 'results_spines/{}/'.format(did)
@@ -173,7 +179,8 @@ if __name__=='__main__':
             len_spines = ln_sp
             thick_spines = tk_sp
 
-        lookuptable[i] = [did, thickness, length, np.mean(len_spines), np.mean(thick_spines)]
+        lookuptable[i] = [did, thickness, length, 
+                          np.mean(thick_spines), np.mean(len_spines)]
         np.savetxt('lookuptable.txt', lookuptable,
             header = 'dendrite id, thickness, length, spines_avg_thickness, spines_avg_length',
                    fmt=['%d', '%f', '%f', '%f', '%f'])
@@ -182,8 +189,9 @@ if __name__=='__main__':
     
     lot_s = lookuptable[np.argsort(-lookuptable[:,1])]
     np.savetxt('lookuptable.txt', lot_s,
-           header = 'dendrite id, thickness, length',
-           fmt=['%d', '%f', '%f'])
+            header = 'dendrite id, thickness, length, spines_avg_thickness, spines_avg_length',
+            fmt=['%d', '%f', '%f', '%f', '%f'])
+        
     print('done')
 
 # use the following to print all the thicknesses as a list
