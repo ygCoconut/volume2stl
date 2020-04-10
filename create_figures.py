@@ -10,12 +10,12 @@ import sys
 from tqdm import tqdm
 from PIL import Image
 
-def get_stl_paths(full_path, json_filename=''):
+def get_stl_paths(full_path, stl_file='/xyz_0_0_0_pca_pair.stl' ,json_filename=''):
     dir_list = os.listdir(full_path)
     data = {}
     for d in dir_list:
         file_list = os.listdir(os.path.join(full_path, d))
-        data[d] = os.path.join(full_path, d+'/xyz_0_0_0_pca_pair.stl')
+        data[d] = os.path.join(full_path, d + stl_file)
     if json_filename:
         print('Making JSON for', json_filename)
         with open(json_filename+".json", 'w') as f:
@@ -127,8 +127,8 @@ if __name__ == '__main__':
 
 
         else:
-            figure_path = '/home/youngcoconut/Documents/snowjournal/volume2stl/figures/xyz_0_0_0_pca_mito_dendrite_pairs2/'
-            paths_dict = get_stl_paths('/home/youngcoconut/Documents/snowjournal/volume2stl/stl_mitos_dendrites_length_500/stl_dendrites/')
+            figure_path = '/home/youngcoconut/Documents/snowjournal/volume2stl/figures/pca_nocrumbs/'
+            paths_dict = get_stl_paths('/home/youngcoconut/Documents/snowjournal/volume2stl/stl_mitos_dendrites_length_500/stl_dendrites_nocrumbs/')
     #     paths_dict = get_stl_paths(sys.argv[1])
             path_dict2=get_stl_paths('/home/youngcoconut/Documents/snowjournal/volume2stl/stl_mitos_dendrites_length_500/stl_mitos/')
 
