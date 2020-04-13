@@ -4,6 +4,7 @@ import itertools
 
 
 def _get_dendrite_mito_map(fp):
+    # we ll need this mapping later to assign mitos to dendrites
     mitodirs = os.listdir(fp)
     mapmitos = {}
     for m in mitodirs:
