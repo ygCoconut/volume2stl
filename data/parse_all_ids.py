@@ -17,7 +17,9 @@ def _get_dendrite_mito_map(fp):
 def get_lut():
     donglaidir = '/n/pfister_lab2/Lab/donglai/mito/db/30um_human/neuron_mito/'
     lookuptable = _get_dendrite_mito_map(donglaidir)
-    with open('lut_dendrite_mito.json', 'w') as outfile:
+    select_ids = np.loadtxt('seg_spiny_v2.txt')
+    lot_sel = {int(k): [int(v) for v in vals] for k,vals in lookuptable.items() if k in select_ids}
+    with open('lut_dendrite_mito_test.json', 'w') as outfile:
         json.dump(lookuptable, outfile)
         
 def get_colon_sv():
@@ -40,7 +42,7 @@ print(list(itertools.chain.from_iterable(mito_list)))
 idlist = np.loadtxt('seg_spiny_v2.txt')
 
 idlist = ":".join([str(int(i)) for i in idlist])
-
+idlist
 
 # mito-id, seg-id
 idmap = np.loadtxt('/n/pfister_lab2/Lab/donglai/mito/db/30um_human/mito_len500_bead_pair.txt')
