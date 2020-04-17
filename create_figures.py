@@ -57,8 +57,6 @@ def _add_normalizing_vector_point(mesh, minpt, maxpt):
                     np.array([ [[0,0,maxpt], [0,0,maxpt], [0,0,maxpt]],
                                [[0,0,minpt], [0,0,minpt], [0,0,minpt]] ], float) ])
 
-# newmesh.vectors = np.vstack([mesh.vectors,                np.array([ [[0,0,maxpt], [0,0,maxpt], [0,0,maxpt]],                          [[0,0,minpt], [0,0,minpt], [0,0,minpt]] ], float) ])
-
     return newmesh
 
 def create_figure(path_dict, figure_path, path_dict2=None, pair_mapping=None, transp_backg=False):
@@ -67,19 +65,21 @@ def create_figure(path_dict, figure_path, path_dict2=None, pair_mapping=None, tr
         'please specify all kwargs or none of them'
 
     if pair_mapping is not None:
-        for k in tqdm(pair_mapping):
-            mesh= Mesh.from_file(path_dict[k[0]])
-            mesh2 = Mesh.from_file(path_dict2[k[1]])
-
-            # if debug == True:
+        # for k in tqdm(pair_mapping):
+            # mesh= Mesh.from_file(path_dict[k[0]])
+            # mesh2 = Mesh.from_file(path_dict2[k[1]])
+        for k,values in tqdm(pair_mapping.items()):
+            mesh = Mesh.from_file(path_dict[k])
             mesh = _add_normalizing_vector_point(mesh, 300, -300)
-
             fig = vpl.figure()
             fig.background_color = 'black'
             vpl.mesh_plot(mesh, color = 'pink', opacity=0.3) #make dendrite translucent
-            vpl.mesh_plot(mesh2) # add second .stl to same plot
 
-            save_path = figure_path + k[0] + '_' + k[1] + '.png'
+            for v in values: # add second, third,.. .stl to same plot
+                mesh2 = Mesh.from_file(path_dict2[str(v)])
+                vpl.mesh_plot(mesh2)
+
+            save_path = figure_path + str(k) + '.png'
             vpl.save_fig(save_path, magnification=5, off_screen=True, )
             if transp_backg == True: #make black background transparent
                 _transparent_background(save_path)
@@ -127,14 +127,16 @@ if __name__ == '__main__':
 
 
         else:
-            figure_path = '/home/youngcoconut/Documents/snowjournal/volume2stl/figures/pca_nocrumbs/'
-            paths_dict = get_stl_paths('/home/youngcoconut/Documents/snowjournal/volume2stl/stl_mitos_dendrites_length_500/stl_dendrites_nocrumbs/')
+            figure_path = '/home/youngcoconut/Documents/snowjournal/volume2stl/figures/pca_nocrumbs_237/'
+            paths_dict = get_stl_paths('/home/youngcoconut/Documents/snowjournal/volume2stl/stl_237/stl_dendrites/')
     #     paths_dict = get_stl_paths(sys.argv[1])
-            path_dict2=get_stl_paths('/home/youngcoconut/Documents/snowjournal/volume2stl/stl_mitos_dendrites_length_500/stl_mitos/')
+            path_dict2=get_stl_paths('/home/youngcoconut/Documents/snowjournal/volume2stl/stl_237/stl_all_mitos/')
 
             # mito-id, seg-id  -->   seg-id, mito-id
-            idmap = np.loadtxt('mito_len500_bead_pair.txt')
-            idmap = idmap[:,[1,0]].astype(np.uint32).astype(str)
+            # idmap = np.loadtxt('mito_len500_bead_pair.txt')
+            # idmap = idmap[:,[1,0]].astype(np.uint32).astype(str)
+            with open('data/lut_dendrite_mito_237.json') as json_file:
+                idmap = json.load(json_file)
 
             create_figure(paths_dict, figure_path, path_dict2=path_dict2, pair_mapping=idmap, transp_backg=True)
 
