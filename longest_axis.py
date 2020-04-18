@@ -22,6 +22,12 @@ def blockPrint(): # Disable print
 def enablePrint(): # Restore print
     sys.stdout = sys.__stdout__
 
+def print_lot(lot_s):
+    # use the following to print all the thicknesses and all the ids in a 
+    # look_up_table.txt as a list
+    print(','.join([str(int(i)) for i in lot_s[:,0]]) ) #get ids
+    print(','.join([str(float(i)) for i in lot_s[:,1]]) ) #get th
+
 def write_skel_coordinates(skel, G, save_path='node_pos.h5'):
     # get array containing all selected points of the skeleton,
     # so we can display them in neuroglancer
@@ -35,15 +41,13 @@ def write_skel_coordinates(skel, G, save_path='node_pos.h5'):
     WriteH5(save_path, point_cloud)
 
 
-# def skel2graph(dendrite_id, dendrite_folder, seg, res, shrink=False):
-def skeleton2graph(dendrite_id, dendrite_folder, seg_fn, res, shrink=False):
+def skeleton2graph(dendrite_id, dendrite_folder, seg, res, shrink=False):
     print('generate graph from skeleton ..')
     skel = ReadSkeletons(dendrite_folder,
                      skeleton_algorithm='thinning',
                      downsample_resolution=res,
                      read_edges=True)[1]
 
-    seg = ReadH5(seg_fn, 'main')
     sz = seg.shape
 #     bb = GetBbox(seg>0)
     bb = GetBbox(seg==int(dendrite_id))
@@ -69,18 +73,15 @@ def skeleton2graph(dendrite_id, dendrite_folder, seg_fn, res, shrink=False):
     
 
 # 2. Graph Operations 
-def longest_axis_dijkstra(G):
-#     Todo: implement with nx.dijkstra_path
-    pass
 
-def longest_axis_exhaustive(G):
+def search_longest_path_exhaustive(G):
     """
     Info: Search algorithm to find longest axis in a graph. 
     Tries all combinations without any heuristics.
     input: nx.Graph
     output: [list] of all paths between all nodes, [list] of length of each path
-    
     """
+    
     path_list = []
     path_length = []
     node_pairs = []
@@ -96,24 +97,54 @@ def longest_axis_exhaustive(G):
     SG = G.subgraph(nbunch)
     return SG, np.max(path_length), nbunch, node_pairs[np.argmax(path_length)]
 
+def search_longest_path_efficient(G):
+    """
+    Info: Search algorithm to find longest path in a graph. 
+    Breadth first search (BFS) used twice for acyclic graphs.
+    BFS over all endnodes used for cyclic graphs
+    input: nx.Graph
+    output: [list] of all paths between all nodes, [list] of length of each path
+    """
+    
+    def _bfs_tree(G):
+        # twice BFS in undirected acyclic graph (Tree) to find endnodes
+        # bfs for longest path is performed in Directed Tree
+        endnodes = [x for x in G.nodes() if G.degree(x)==1]
+        DiTree1 = nx.traversal.bfs_tree(G, endnodes[0])
+        SG1 = G.subgraph(nx.dag_longest_path(DiTree1))
+        new_root = [x for x in SG1.nodes() if G.degree(x)==1 and x != endnodes[0]][0]
+        DiTree2 = nx.traversal.bfs_tree(SG1, new_root)
+        SG2 = G.subgraph(nx.dag_longest_path(DiTree2))
+        return SG2, nx.dag_longest_path_length(DiTree2)
+    
+    def _exhaustive(G):
+        # Finds longest shortest path by iterating over all endnodes
+        path_list = []
+        path_length = []
+#         node_pairs = []
+        endnodes = [x for x in G.nodes() if G.degree(x)==1]
+        for source in endnodes:
+            for target in endnodes:
+                sh_p = nx.shortest_path(G, source, target)
+                sh_p_l = nx.shortest_path_length(G, source, target)
+                path_list.append(sh_p)
+                path_length.append(sh_p_l)
+#                 node_pairs.append([source, target])
 
-def extract_main_axis_from_skeleton(dendrite_id, dendrite_folder, seg_fn,
-                                    res, write=True, shrink=False):
+        nbunch = path_list[np.argmax(path_length)]
+        SG = G.subgraph(nbunch)
+        return SG, np.max(path_length)#, nbunch, node_pairs[np.argmax(path_length)]
 
-    G, skel = skel2graph(dendrite_id, dendrite_folder, seg_fn, res, shrink=shrink)
-
-    # %% get longest axis (main axis):
-    SG, nodes, path_length, endnodes = longest_axis_exhaustive(G)
-
-    if write == True:
-        if shrink == True:
-            write_skel_coordinates(skel, G,
-                save_path= dendrite_folder+'node_pos_longaxis_shrinked2.h5')
-        else:
-            write_skel_coordinates(skel, G,
-                save_path= dendrite_folder+'node_pos_longaxis2.h5')
-
-    return SG, endnodes
+    
+    if nx.tree.is_tree(G) #single connected acyclic graph
+        return _bfs_tree(G)
+    
+    else:
+        if nx.is_forest(G): #multiple disconnected trees
+            #todo: loop over connected components (=trees), compare longest branches
+            return _exhaustive(G)
+        else: #cyclic graph
+            return _exhaustive(G)
 
 def edge_length_and_thickness(G, node1, node2):
     length = nx.shortest_path_length(G, node1, node2, weight='weight')
@@ -130,12 +161,15 @@ def edge_length_and_thickness(G, node1, node2):
         return 0, 0
 
 def get_spines(Gsp, mainaxis_nodes):
+    #Todo: remove main axis edges --> nodes belong to spines
     "remove main-axis nodes from graph, return list of unconnected subgraphs"
     for node in list(mainaxis_nodes):
         Gsp.remove_node(node)
 
     graphs = list(nx.connected_component_subgraphs(G))
     return graphs # graph_list
+
+
 
 if __name__=='__main__':
 # if opt=='4': # longest graph path
@@ -146,27 +180,40 @@ if __name__=='__main__':
     seg_fn = '/n/pfister_lab2/Lab/donglai/mito/db/30um_human/seg_64nm.h5' # crumbs
     seg_fn = '/n/pfister_lab2/Lab/nils/snowproject/seg_64nm_maindendrite.h5' # no crumbs
     
-    seg = np.array(h5py.File(seg_fn, 'r')['main'])
 #     dendrite_ids = np.loadtxt('mito_len500_bead_pair.txt', int)[:,1]
-    dendrite_ids = np.loadtxt('seg_spiny_v2.txt', int)
+    dendrite_ids = np.loadtxt('data/seg_spiny_v2.txt', int)
     lookuptable = np.zeros((dendrite_ids.shape[0], 5))
-#     did = 1499496
+    did = 1499496
+
+    seg = ReadH5(seg_fn, 'main')
+#     seg = np.array(h5py.File(seg_fn, 'r')['main'])
+    
+    create_skel = False
+    if create_skel == True: # only needed if no skeleton created yet 
+        print("\nCreate skeletons for given ids:\n")
+        for i, did in enumerate(tqdm(dendrite_ids)):
+            blockPrint()
+            
+            dendrite_folder = 'results_spines/{}/'.format(did)
+            CreateSkeleton(seg==did, dendrite_folder, res, res)
+            
+            enablePrint()
+    
+#     write_skel_coordinates(skel, G, save_path= dendrite_folder+'nodes_main.h5')
+
     for i, did in enumerate(tqdm(dendrite_ids)):
         blockPrint()
         dendrite_folder = 'results_spines/{}/'.format(did)
-
-        CreateSkeleton(seg==did, dendrite_folder, res, res)
-        # get main axis:
-#         G, nodeends = extract_main_axis_from_skeleton(did, dendrite_folder,
-#                                 seg_fn, res, write=True, shrink = False)
-        
         # load skeleton of given seg id, return it and its graph
-        G, skel = skeleton2graph(did, dendrite_folder, seg_fn, res)
+        G, skel = skeleton2graph(did, dendrite_folder, seg, res)
         # %% get longest axis 
-        main_G, _, _, endnodes = longest_axis_exhaustive(G)
+        main_G, _, _, endnodes = search_longest_path_exhaustive(G)
+#         main_G, _, _, endnodes = search_longest_path_efficient(G)
+
+        
+        
         # get average thickness and length
         length, thickness = edge_length_and_thickness(G, endnodes[0], endnodes[1])
-
         #get spines of the main axis dendrite:
         len_spines = []
         thick_spines = []
@@ -181,21 +228,19 @@ if __name__=='__main__':
 
         lookuptable[i] = [did, thickness, length, 
                           np.mean(thick_spines), np.mean(len_spines)]
+        # backup saving
         np.savetxt('lookuptable.txt', lookuptable,
-            header = 'dendrite id, thickness, length, spines_avg_thickness, spines_avg_length',
-                   fmt=['%d', '%f', '%f', '%f', '%f'])
+            header = 'dendrite id, thickness, length,' + \
+                   ' spines_avg_thickness, spines_avg_length',
+            fmt=['%d', '%f', '%f', '%f', '%f'] )
         
         enablePrint()
     
     lot_s = lookuptable[np.argsort(-lookuptable[:,1])]
     np.savetxt('lookuptable.txt', lot_s,
-            header = 'dendrite id, thickness, length, spines_avg_thickness, spines_avg_length',
-            fmt=['%d', '%f', '%f', '%f', '%f'])
+            header = 'dendrite id, thickness, length,' + \
+                   ' spines_avg_thickness, spines_avg_length',
+            fmt=['%d', '%f', '%f', '%f', '%f'] )
         
     print('done')
 
-# use the following to print all the thicknesses as a list
-#     ','.join([str(float(i)) for i in lot_s[:,1]])
-# ','.join([str(int(i)) for i in lot_s[:,0]]) #get ids
-    
-    
