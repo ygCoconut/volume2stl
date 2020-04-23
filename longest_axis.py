@@ -51,7 +51,6 @@ def skeleton2graph(dendrite_id, dendrite_folder, seg, res, shrink=False):
     sz = seg.shape
 #     bb = GetBbox(seg>0)
     bb = GetBbox(seg==int(dendrite_id))
-
     seg_b = seg[bb[0]:bb[1]+1,bb[2]:bb[3]+1,bb[4]:bb[5]+1]
     dt = distance_transform_cdt(seg_b, return_distances=True)
     new_graph, wt_dict, th_dict, ph_dict = GetGraphFromSkeleton(skel,
@@ -97,12 +96,13 @@ def search_longest_path_exhaustive(G):
     SG = G.subgraph(nbunch)
     return SG, np.max(path_length), nbunch, node_pairs[np.argmax(path_length)]
 
-def search_longest_path_efficient(G):
+def search_longest_path_efficient(G, weight='weight'):
     """
     Info: Search algorithm to find longest path in a graph. 
     Breadth first search (BFS) used twice for acyclic graphs.
     BFS over all endnodes used for cyclic graphs
     input: nx.Graph
+    optional: edge paramater weight -> either 'weight' or 'thick'
     output: [list] of all paths between all nodes, [list] of length of each path
     """
     
@@ -111,10 +111,10 @@ def search_longest_path_efficient(G):
         # bfs for longest path is performed in Directed Tree
         endnodes = [x for x in G.nodes() if G.degree(x)==1]
         DiTree1 = nx.traversal.bfs_tree(G, endnodes[0])
-        SG1 = G.subgraph(nx.dag_longest_path(DiTree1))
+        SG1 = G.subgraph(nx.dag_longest_path(DiTree1, weight=weight))
         new_root = [x for x in SG1.nodes() if G.degree(x)==1 and x != endnodes[0]][0]
         DiTree2 = nx.traversal.bfs_tree(SG1, new_root)
-        SG2 = G.subgraph(nx.dag_longest_path(DiTree2))
+        SG2 = G.subgraph(nx.dag_longest_path(DiTree2, weight=weight))
         return SG2, nx.dag_longest_path_length(DiTree2)
     
     def _exhaustive(G):
@@ -125,8 +125,8 @@ def search_longest_path_efficient(G):
         endnodes = [x for x in G.nodes() if G.degree(x)==1]
         for source in endnodes:
             for target in endnodes:
-                sh_p = nx.shortest_path(G, source, target)
-                sh_p_l = nx.shortest_path_length(G, source, target)
+                sh_p = nx.shortest_path(G, source, target, weight=weight)
+                sh_p_l = nx.shortest_path_length(G, source, target, weight=weight)
                 path_list.append(sh_p)
                 path_length.append(sh_p_l)
 #                 node_pairs.append([source, target])
@@ -135,10 +135,9 @@ def search_longest_path_efficient(G):
         SG = G.subgraph(nbunch)
         return SG, np.max(path_length)#, nbunch, node_pairs[np.argmax(path_length)]
 
-    
-    if nx.tree.is_tree(G) #single connected acyclic graph
+    if nx.tree.is_tree(G): #single connected acyclic graph
         return _bfs_tree(G)
-    
+
     else:
         if nx.is_forest(G): #multiple disconnected trees
             #todo: loop over connected components (=trees), compare longest branches
@@ -170,7 +169,111 @@ def get_spines(Gsp, mainaxis_nodes):
     return graphs # graph_list
 
 
+def prune_graph(G0, threshold=0.5, num_its=3):
+    "recursively prunes endnodes of graph, if edge thickness below avg graph thickness"
+    endnodes = [x for x in G.nodes() if G.degree(x)==1]
+#     avg_th = nx.shortest_path_length(G, endnodes[0], endnodes[1], weight='thick')
+    avg_th = nx.shortest_path_length(G, endnodes[0], endnodes[1], weight='thick') / nx.shortest_path_length(G, endnodes[0], endnodes[1], weight='weight')
+    
+    def _prune(G):
+        endnodes = [x for x in G.nodes() if G.degree(x)==1]
+        import pdb; pdb.set_trace()
+#         endthick = G[endnodes[0]][nx.neighbors(G, endnodes[0]).next()]['thick']
+        endthick = G[endnodes[0]][nx.neighbors(G, endnodes[0]).next()]['thick'] / G[endnodes[0]][nx.neighbors(G, endnodes[0]).next()]['weight']
+        if endthick < threshold*avg_th:
+            G.remove_node(endnodes[0])
+#         endthick = G[endnodes[1]][nx.neighbors(G, endnodes[1]).next()]['thick']
+        endthick = G[endnodes[1]][nx.neighbors(G, endnodes[1]).next()]['thick'] / G[endnodes[1]][nx.neighbors(G, endnodes[1]).next()]['weight']
+        if endthick < threshold*avg_th:
+            G.remove_node(endnodes[1])
+        return G
+    
+    G1 = nx.Graph(G0) #unfrozen_graph
+    for _ in range(num_its):
+        G1 = _prune(G1)
+    return G1
 
+def prune_graph2(G, threshold=0.15, max_depth=3):
+    en = [x for x in G.nodes() if G.degree(x)==1] # endnodes
+    avg_th = nx.shortest_path_length(G, en[0], en[1], weight='thick') / \
+             nx.shortest_path_length(G, en[0], en[1], weight='weight')
+    th = nx.shortest_path_length(G, en[0], en[1], weight='thick')
+    
+    def _neighborhood(G, node, n):
+    # https://stackoverflow.com/questions/22742754/finding-the-n-degree-neighborhood-of-a-node
+        path_lengths = nx.single_source_dijkstra_path_length(G, node, weight=None)
+        return [node for node, length in path_lengths.iteritems() if length == n]
+    
+    deep_neighbors = [_neighborhood(G, en[0], max_depth)[0], 
+                _neighborhood(G, en[1], max_depth)[0]]
+    paths = [list(nx.shortest_simple_paths(G, en[0], deep_neighbors[0]))[0][1:],
+             list(nx.shortest_simple_paths(G, en[1], deep_neighbors[1]))[0][1:]]
+    
+    paththick0 =[nx.shortest_path_length(G, en[0], p, weight='thick') for p in paths[0]]
+    pathlen0 =  [nx.shortest_path_length(G, en[0], p, weight='weight') for p in paths[0]]
+    paththick1 =[nx.shortest_path_length(G, en[1], p, weight='thick') for p in paths[1]]
+    pathlen1 =  [nx.shortest_path_length(G, en[1], p, weight='weight') for p in paths[1]]
+    
+    avgthick0 = [paththick0[i]/pathlen0[i] for i in range(max_depth)]
+    avgthick1 = [paththick1[i]/pathlen1[i] for i in range(max_depth)]
+    
+    mtx = np.array([paththick0, paththick1,
+                    pathlen0,   pathlen1,
+                    avgthick0,  avgthick1 ])
+
+    np.savetxt('paths.txt', mtx)
+    for n in paths[0]:
+        try:
+            G.remove_node(n) if endthick < threshold*avg_th
+        except: pass
+    for n in paths[1]:
+        try:
+            G.remove_node(n) if endthick < threshold*avg_th
+        except: pass
+        
+            
+def plot_Graph(G, nodepos=None, return_pos=False):
+    if nodepos == None:
+        nodepos = nx.kamada_kawai_layout(G)
+    endnodes = [x for x in G.nodes() if G.degree(x)==1]
+    endnodepos = {k:v for k,v in nodepos.items() if k in endnodes}
+    
+
+    # need to debug: labels dict not filtering..
+    labels = nx.get_edge_attributes(G,'weight')
+    labels_new = {k:v for k,v in labels.items() if k in G.edges(endnodes)}
+    nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
+
+    
+    # only draw nodelabels for endnodes
+    nx.draw_networkx_labels(G.subgraph(endnodes), nodepos)
+    nx.draw(G,nodepos)
+    
+    
+
+    G.edges(endnodes)
+    S = G.edge_subgraph(G.edges(endnodes))
+    
+    dir(G)
+
+    labels = nx.get_edge_attributes(G.subgraph(G.edges(endnodes)) ,'thick')
+    nx.draw_networkx_edge_labels(G,nodepos,edge_labels=labels)
+
+    
+    nx.get_edge_attributes(G.edges(endnodes)['thick'])
+
+#     nx.draw_networkx_edges(G)
+    nx.draw_networkx_nodes(G, pos)
+    pos[endnodes]
+    labels = nx.get_edge_attributes(G,'weight')
+    nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
+#     labels = nx.get_edge_attributes(G,'weight')
+        
+#     nx.draw_networkx_edges(G, pos, labels)
+    
+    if return_pos: 
+        return pos
+        
 if __name__=='__main__':
 # if opt=='4': # longest graph path
     print('start')
@@ -183,6 +286,7 @@ if __name__=='__main__':
 #     dendrite_ids = np.loadtxt('mito_len500_bead_pair.txt', int)[:,1]
     dendrite_ids = np.loadtxt('data/seg_spiny_v2.txt', int)
     lookuptable = np.zeros((dendrite_ids.shape[0], 5))
+    did = 6659767
     did = 1499496
 
     seg = ReadH5(seg_fn, 'main')
@@ -193,27 +297,30 @@ if __name__=='__main__':
         print("\nCreate skeletons for given ids:\n")
         for i, did in enumerate(tqdm(dendrite_ids)):
             blockPrint()
-            
             dendrite_folder = 'results_spines/{}/'.format(did)
             CreateSkeleton(seg==did, dendrite_folder, res, res)
-            
             enablePrint()
     
-#     write_skel_coordinates(skel, G, save_path= dendrite_folder+'nodes_main.h5')
 
     for i, did in enumerate(tqdm(dendrite_ids)):
         blockPrint()
         dendrite_folder = 'results_spines/{}/'.format(did)
         # load skeleton of given seg id, return it and its graph
         G, skel = skeleton2graph(did, dendrite_folder, seg, res)
-        # %% get longest axis 
-        main_G, _, _, endnodes = search_longest_path_exhaustive(G)
-#         main_G, _, _, endnodes = search_longest_path_efficient(G)
 
-        
-        
+        # %% get longest axis 
+#         main_G, _, _, endnodes = search_longest_path_exhaustive(G)
+#         weight = 'weight' # longest path based on edge parameter weigth
+        weight = 'weight' # longest path based on edge parameter weigth
+        main_G, length = search_longest_path_efficient(G, weight=weight)
+        main_G_pruned = prune_graph(main_G, threshold=0.9, num_its=3)
+        write_skel_coordinates(skel, main_G, save_path='node_pos_weightweight_prune.h5')
+
+    
+        endnodes = [x for x in main_G.nodes() if main_G.degree(x)==1]
         # get average thickness and length
         length, thickness = edge_length_and_thickness(G, endnodes[0], endnodes[1])
+        
         #get spines of the main axis dendrite:
         len_spines = []
         thick_spines = []

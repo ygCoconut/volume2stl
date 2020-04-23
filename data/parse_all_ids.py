@@ -39,10 +39,14 @@ get_colon_sv()
 # ''.join(mito_list)
 print(list(itertools.chain.from_iterable(mito_list)))
 
-idlist = np.loadtxt('seg_spiny_v2.txt')
-
+idlist = np.loadtxt('data/seg_spiny_v2.txt')
 idlist = ":".join([str(int(i)) for i in idlist])
 idlist
+
+idlist = np.loadtxt('data/mito_len500_bead_pair.txt')
+idlist = ":".join([str(int(i)) for i in idlist[:,1]])
+idlist
+
 
 # mito-id, seg-id
 idmap = np.loadtxt('/n/pfister_lab2/Lab/donglai/mito/db/30um_human/mito_len500_bead_pair.txt')
