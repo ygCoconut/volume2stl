@@ -205,14 +205,24 @@ def prune_graph(G, threshold=0.15, max_depth=5):
     
     return Grm
 
-def get_spines(Gsp, mainaxis_nodes):
-    #Todo: remove main axis edges --> nodes belong to spines
-    "remove main-axis nodes from graph, return list of unconnected subgraphs"
-    for node in list(mainaxis_nodes):
-        Gsp.remove_node(node)
+def get_spines(G, Gma, return_extra=False):
+    "remove main-axis edges from graph, return list of unconnected subgraphs"
+    # return G - Gma_edges
+    Grm = G.copy()
+    Grm.remove_edges_from(Gma.edges) #rm edges between main axis nodes
+    Grm.remove_nodes_from(list(nx.isolates(Grm))) #rm single nodes
 
-    graphs = list(nx.connected_component_subgraphs(G))
-    return graphs # graph_list
+    graphs = list(nx.connected_component_subgraphs(Grm)) # get subgraphs
+    
+    if return_extra == True:
+        nc_clean = [len(g) for g in graphs if len(g)>2] #rm outliers
+#         plt.hist(ln, bins=len(ln)+1)
+#         plt.hist(nc_clean, bins=len(nc_clean)-1)
+#         ui, uc = np.unique(ln, return_counts=True)
+        return graphs, np.mean(nc_clean)
+    
+    else:
+        return graphs # graph_list
 
         
 if __name__=='__main__':
@@ -228,7 +238,7 @@ if __name__=='__main__':
     dendrite_ids = np.loadtxt('data/seg_spiny_v2.txt', int)
     lookuptable = np.zeros((dendrite_ids.shape[0], 5))
 #     did = 6659767
-#     did = 1499496
+    did = 1499496
 
     seg = ReadH5(seg_fn, 'main')
 #     seg = np.array(h5py.File(seg_fn, 'r')['main'])
@@ -266,7 +276,8 @@ if __name__=='__main__':
         #get spines of the main axis dendrite:
         len_spines = []
         thick_spines = []
-        spines_G_list = get_spines(G, main_G.nodes)
+#         spines_G_list = get_spines(G, main_G.nodes)
+        spines_G_list = get_spines2(G, main_G)
         for spine in spines_G_list:
             spine_mainG, _, _, endnodes_spine = longest_axis_exhaustive(spine)
             ln_sp, tk_sp = edge_length_and_thickness(spine, endnodes_spine[0], endnodes_spine[1])
