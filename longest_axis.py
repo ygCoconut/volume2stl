@@ -28,6 +28,21 @@ def print_lot(lot_s):
     print(','.join([str(int(i)) for i in lot_s[:,0]]) ) #get ids
     print(','.join([str(float(i)) for i in lot_s[:,1]]) ) #get th
 
+def plot_Graph(G, nodepos=None, return_pos=False):
+    if nodepos == None:
+        nodepos = nx.kamada_kawai_layout(G)
+    endnodes = [x for x in G.nodes() if G.degree(x)==1]
+    endnodepos = {k:v for k,v in nodepos.items() if k in endnodes}
+    # need to debug: labels dict not filtering..
+#     labels = nx.get_edge_attributes(G,'weight')
+#     labels_new = {k:v for k,v in labels.items() if k in G.edges(endnodes)}
+#     nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
+    # only draw nodelabels for endnodes
+    nx.draw_networkx_labels(G.subgraph(endnodes), nodepos)
+    nx.draw(G,nodepos)
+    if return_pos: 
+        return pos
+    
 def write_skel_coordinates(skel, G, save_path='node_pos.h5'):
     # get array containing all selected points of the skeleton,
     # so we can display them in neuroglancer
@@ -40,13 +55,10 @@ def write_skel_coordinates(skel, G, save_path='node_pos.h5'):
 
     WriteH5(save_path, point_cloud)
 
-
 def skeleton2graph(dendrite_id, dendrite_folder, seg, res, shrink=False):
     print('generate graph from skeleton ..')
-    skel = ReadSkeletons(dendrite_folder,
-                     skeleton_algorithm='thinning',
-                     downsample_resolution=res,
-                     read_edges=True)[1]
+    skel = ReadSkeletons(dendrite_folder, skeleton_algorithm='thinning',
+                         downsample_resolution=res, read_edges=True)[1]
 
     sz = seg.shape
 #     bb = GetBbox(seg>0)
@@ -72,30 +84,6 @@ def skeleton2graph(dendrite_id, dendrite_folder, seg, res, shrink=False):
     
 
 # 2. Graph Operations 
-
-def search_longest_path_exhaustive(G):
-    """
-    Info: Search algorithm to find longest axis in a graph. 
-    Tries all combinations without any heuristics.
-    input: nx.Graph
-    output: [list] of all paths between all nodes, [list] of length of each path
-    """
-    
-    path_list = []
-    path_length = []
-    node_pairs = []
-    for source in G.nodes:
-        for target in G.nodes:
-            sh_p = nx.shortest_path(G, source, target)
-            sh_p_l = nx.shortest_path_length(G, source, target)
-            path_list.append(sh_p)
-            path_length.append(sh_p_l)
-            node_pairs.append([source, target])
-            
-    nbunch = path_list[np.argmax(path_length)]
-    SG = G.subgraph(nbunch)
-    return SG, np.max(path_length), nbunch, node_pairs[np.argmax(path_length)]
-
 def search_longest_path_efficient(G, weight='weight'):
     """
     Info: Search algorithm to find longest path in a graph. 
@@ -159,41 +147,16 @@ def edge_length_and_thickness(G, node1, node2):
     except:
         return 0, 0
 
-def get_spines(Gsp, mainaxis_nodes):
-    #Todo: remove main axis edges --> nodes belong to spines
-    "remove main-axis nodes from graph, return list of unconnected subgraphs"
-    for node in list(mainaxis_nodes):
-        Gsp.remove_node(node)
-
-    graphs = list(nx.connected_component_subgraphs(G))
-    return graphs # graph_list
-
-
-def prune_graph(G0, threshold=0.5, num_its=3):
-    "recursively prunes endnodes of graph, if edge thickness below avg graph thickness"
-    endnodes = [x for x in G.nodes() if G.degree(x)==1]
-#     avg_th = nx.shortest_path_length(G, endnodes[0], endnodes[1], weight='thick')
-    avg_th = nx.shortest_path_length(G, endnodes[0], endnodes[1], weight='thick') / nx.shortest_path_length(G, endnodes[0], endnodes[1], weight='weight')
+def prune_graph(G, threshold=0.15, max_depth=3):
+    """
+    Same as prunegraph3, except we compare the removal candidates AND removed based on threshold 
     
-    def _prune(G):
-        endnodes = [x for x in G.nodes() if G.degree(x)==1]
-        import pdb; pdb.set_trace()
-#         endthick = G[endnodes[0]][nx.neighbors(G, endnodes[0]).next()]['thick']
-        endthick = G[endnodes[0]][nx.neighbors(G, endnodes[0]).next()]['thick'] / G[endnodes[0]][nx.neighbors(G, endnodes[0]).next()]['weight']
-        if endthick < threshold*avg_th:
-            G.remove_node(endnodes[0])
-#         endthick = G[endnodes[1]][nx.neighbors(G, endnodes[1]).next()]['thick']
-        endthick = G[endnodes[1]][nx.neighbors(G, endnodes[1]).next()]['thick'] / G[endnodes[1]][nx.neighbors(G, endnodes[1]).next()]['weight']
-        if endthick < threshold*avg_th:
-            G.remove_node(endnodes[1])
-        return G
-    
-    G1 = nx.Graph(G0) #unfrozen_graph
-    for _ in range(num_its):
-        G1 = _prune(G1)
-    return G1
-
-def prune_graph2(G, threshold=0.15, max_depth=3):
+    The length does not seem to scale linearly with the thickess, therefore the shortest segment 
+    will also most likely be the thickest, according to our thickness metric. This behaviour 
+    is not desired, but no method to prohibit this has been found so far.
+    input: Graph, opt: max_depth of the graph, threshold is legacy and not used
+    output: pruned graph without removed nodes
+    """
     en = [x for x in G.nodes() if G.degree(x)==1] # endnodes
     avg_th = nx.shortest_path_length(G, en[0], en[1], weight='thick') / \
              nx.shortest_path_length(G, en[0], en[1], weight='weight')
@@ -205,74 +168,45 @@ def prune_graph2(G, threshold=0.15, max_depth=3):
         return [node for node, length in path_lengths.iteritems() if length == n]
     
     deep_neighbors = [_neighborhood(G, en[0], max_depth)[0], 
-                _neighborhood(G, en[1], max_depth)[0]]
-    paths = [list(nx.shortest_simple_paths(G, en[0], deep_neighbors[0]))[0][1:],
-             list(nx.shortest_simple_paths(G, en[1], deep_neighbors[1]))[0][1:]]
+                      _neighborhood(G, en[1], max_depth)[0]]
+    en_candidates = [list(nx.shortest_simple_paths(G, en[0], deep_neighbors[0]))[0][1:],
+                     list(nx.shortest_simple_paths(G, en[1], deep_neighbors[1]))[0][1:]]
+
     
-    paththick0 =[nx.shortest_path_length(G, en[0], p, weight='thick') for p in paths[0]]
-    pathlen0 =  [nx.shortest_path_length(G, en[0], p, weight='weight') for p in paths[0]]
-    paththick1 =[nx.shortest_path_length(G, en[1], p, weight='thick') for p in paths[1]]
-    pathlen1 =  [nx.shortest_path_length(G, en[1], p, weight='weight') for p in paths[1]]
+    paththick0 =[nx.shortest_path_length(G, en[0], p, weight='thick') for p in en_candidates[0]]
+    pathlen0 =  [nx.shortest_path_length(G, en[0], p, weight='weight') for p in en_candidates[0]]
+    paththick1 =[nx.shortest_path_length(G, en[1], p, weight='thick') for p in en_candidates[1]]
+    pathlen1 =  [nx.shortest_path_length(G, en[1], p, weight='weight') for p in en_candidates[1]]
     
     avgthick0 = [paththick0[i]/pathlen0[i] for i in range(max_depth)]
     avgthick1 = [paththick1[i]/pathlen1[i] for i in range(max_depth)]
     
-    mtx = np.array([paththick0, paththick1,
-                    pathlen0,   pathlen1,
-                    avgthick0,  avgthick1 ])
-
-    np.savetxt('paths.txt', mtx)
-    for n in paths[0]:
-        try:
-            G.remove_node(n) if endthick < threshold*avg_th
-        except: pass
-    for n in paths[1]:
-        try:
-            G.remove_node(n) if endthick < threshold*avg_th
-        except: pass
-        
-            
-def plot_Graph(G, nodepos=None, return_pos=False):
-    if nodepos == None:
-        nodepos = nx.kamada_kawai_layout(G)
-    endnodes = [x for x in G.nodes() if G.degree(x)==1]
-    endnodepos = {k:v for k,v in nodepos.items() if k in endnodes}
+    # add to remove list all the nodes below 15% of avg thickness
+    idx_rm0 = [i for i in range(len(avgthick0)) if avgthick0[i] < avg_th*threshold ]
+    idx_rm1 = [i for i in range(len(avgthick1)) if avgthick1[i] < avg_th*threshold ]
+    # add to remove list all the nodes that have deep edge less thick than "shallow" edge
+    idx_rm0 += [i for i in range(len(avgthick0) - 1) if avgthick0[i]>avgthick0[i+1]]
+    idx_rm1 += [i for i in range(len(avgthick1) - 1) if avgthick1[i]>avgthick1[i+1]]
     
-
-    # need to debug: labels dict not filtering..
-    labels = nx.get_edge_attributes(G,'weight')
-    labels_new = {k:v for k,v in labels.items() if k in G.edges(endnodes)}
-    nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
-
+    # remove list of nodes that are indexed
+    idx_max0 = 0 if not idx_rm0 else max(idx_rm0) #rm nothing if empty rm array
+    idx_max1 = 0 if not idx_rm1 else max(idx_rm1)
+    en_rm0 = ([en[0]] + en_candidates[0])[:idx_max0]
+    en_rm1 = ([en[1]] + en_candidates[1])[:idx_max1]
+    Grm = G.copy()
+    Grm.remove_nodes_from(en_rm0 + en_rm1)
     
-    # only draw nodelabels for endnodes
-    nx.draw_networkx_labels(G.subgraph(endnodes), nodepos)
-    nx.draw(G,nodepos)
-    
-    
+    return Grm
 
-    G.edges(endnodes)
-    S = G.edge_subgraph(G.edges(endnodes))
-    
-    dir(G)
+def get_spines(Gsp, mainaxis_nodes):
+    #Todo: remove main axis edges --> nodes belong to spines
+    "remove main-axis nodes from graph, return list of unconnected subgraphs"
+    for node in list(mainaxis_nodes):
+        Gsp.remove_node(node)
 
-    labels = nx.get_edge_attributes(G.subgraph(G.edges(endnodes)) ,'thick')
-    nx.draw_networkx_edge_labels(G,nodepos,edge_labels=labels)
+    graphs = list(nx.connected_component_subgraphs(G))
+    return graphs # graph_list
 
-    
-    nx.get_edge_attributes(G.edges(endnodes)['thick'])
-
-#     nx.draw_networkx_edges(G)
-    nx.draw_networkx_nodes(G, pos)
-    pos[endnodes]
-    labels = nx.get_edge_attributes(G,'weight')
-    nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
-#     labels = nx.get_edge_attributes(G,'weight')
-        
-#     nx.draw_networkx_edges(G, pos, labels)
-    
-    if return_pos: 
-        return pos
         
 if __name__=='__main__':
 # if opt=='4': # longest graph path
@@ -313,10 +247,15 @@ if __name__=='__main__':
 #         weight = 'weight' # longest path based on edge parameter weigth
         weight = 'weight' # longest path based on edge parameter weigth
         main_G, length = search_longest_path_efficient(G, weight=weight)
-        main_G_pruned = prune_graph(main_G, threshold=0.9, num_its=3)
-        write_skel_coordinates(skel, main_G, save_path='node_pos_weightweight_prune.h5')
+        main_G_pruned = prune_graph(main_G, threshold=0.15, max_depth=6)
+#         write_skel_coordinates(skel, main_G, save_path='node_pos_weightweight_noprune5.h5')
+#         write_skel_coordinates(skel, main_G_pruned, save_path='node_pos_weightweight_prune5.h5')
+#         write_skel_coordinates(skel, main_G_pruned, save_path='node_pos_weightweight_prune6.h5')
 
-    
+        len(main_G_pruned)
+#         len(main_G)
+#         len(main_G_pruned)
+        
         endnodes = [x for x in main_G.nodes() if main_G.degree(x)==1]
         # get average thickness and length
         length, thickness = edge_length_and_thickness(G, endnodes[0], endnodes[1])
