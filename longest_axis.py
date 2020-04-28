@@ -147,14 +147,22 @@ def edge_length_and_thickness(G, node1, node2):
     except:
         return 0, 0
 
-def prune_graph(G, threshold=0.15, max_depth=3):
+def prune_graph(G, threshold=0.15, max_depth=5):
     """
-    Same as prunegraph3, except we compare the removal candidates AND removed based on threshold 
+    Endnodes of the main axis can be located in spines instead of stopping at the end
+    of the main axis. We try to correct for that as follows:
     
-    The length does not seem to scale linearly with the thickess, therefore the shortest segment 
-    will also most likely be the thickest, according to our thickness metric. This behaviour 
-    is not desired, but no method to prohibit this has been found so far.
-    input: Graph, opt: max_depth of the graph, threshold is legacy and not used
+    1) We select neighbors of the endnodes of the main-axis with neighborhood<=max_depth
+    2) The average thickness between the end-node and a neighbor needs to be within the 
+    threshold percentage of the overall average thickness from endnode to endnode. A node that
+    does not respect this rule is flagged.
+    3) Each node has a deep edge (away from endnode) and a "shallow" edge (closer to endnode).
+    If the average thickness of a deep edge is higher than the avg. th. of a shallow edge, 
+    the concerned node is flagged.
+    One of the reasons 3) is working: thickness rises faster than length as nodes are removed
+    4) The deepest flagged node and all nodes that are more shallow are removed from the graph.
+    
+    input: Graph, opt: max_depth of the graph, threshold for thickness %
     output: pruned graph without removed nodes
     """
     en = [x for x in G.nodes() if G.degree(x)==1] # endnodes
@@ -166,12 +174,13 @@ def prune_graph(G, threshold=0.15, max_depth=3):
     # https://stackoverflow.com/questions/22742754/finding-the-n-degree-neighborhood-of-a-node
         path_lengths = nx.single_source_dijkstra_path_length(G, node, weight=None)
         return [node for node, length in path_lengths.iteritems() if length == n]
-    
+    # 1) find neighbors
     deep_neighbors = [_neighborhood(G, en[0], max_depth)[0], 
                       _neighborhood(G, en[1], max_depth)[0]]
     en_candidates = [list(nx.shortest_simple_paths(G, en[0], deep_neighbors[0]))[0][1:],
                      list(nx.shortest_simple_paths(G, en[1], deep_neighbors[1]))[0][1:]]
-
+    
+    # compute thickness of all neighbor nodes
     paththick0 =[nx.shortest_path_length(G, en[0], p, weight='thick') for p in en_candidates[0]]
     pathlen0 =  [nx.shortest_path_length(G, en[0], p, weight='weight') for p in en_candidates[0]]
     paththick1 =[nx.shortest_path_length(G, en[1], p, weight='thick') for p in en_candidates[1]]
@@ -179,14 +188,14 @@ def prune_graph(G, threshold=0.15, max_depth=3):
     avgthick0 = [paththick0[i]/pathlen0[i] for i in range(max_depth)]
     avgthick1 = [paththick1[i]/pathlen1[i] for i in range(max_depth)]
     
-    # add to remove list all the nodes below 15% of avg thickness
+    # 2) add to remove list all the nodes below threshold of avg thickness
     idx_rm0 = [i for i in range(len(avgthick0)) if avgthick0[i] < avg_th*threshold ]
     idx_rm1 = [i for i in range(len(avgthick1)) if avgthick1[i] < avg_th*threshold ]
-    # add to remove list all the nodes that have deep edge less thick than "shallow" edge
+    # 3) add to remove list all the nodes that have deep edge less thick than "shallow" edge
     idx_rm0 += [i for i in range(len(avgthick0) - 1) if avgthick0[i]>avgthick0[i+1]]
     idx_rm1 += [i for i in range(len(avgthick1) - 1) if avgthick1[i]>avgthick1[i+1]]
     
-    # remove list of nodes that are indexed
+    # 4) remove list of nodes that are indexed
     idx_max0 = 0 if not idx_rm0 else max(idx_rm0) #rm nothing if empty rm array
     idx_max1 = 0 if not idx_rm1 else max(idx_rm1)
     en_rm0 = ([en[0]] + en_candidates[0])[:idx_max0]
