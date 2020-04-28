@@ -172,12 +172,10 @@ def prune_graph(G, threshold=0.15, max_depth=3):
     en_candidates = [list(nx.shortest_simple_paths(G, en[0], deep_neighbors[0]))[0][1:],
                      list(nx.shortest_simple_paths(G, en[1], deep_neighbors[1]))[0][1:]]
 
-    
     paththick0 =[nx.shortest_path_length(G, en[0], p, weight='thick') for p in en_candidates[0]]
     pathlen0 =  [nx.shortest_path_length(G, en[0], p, weight='weight') for p in en_candidates[0]]
     paththick1 =[nx.shortest_path_length(G, en[1], p, weight='thick') for p in en_candidates[1]]
     pathlen1 =  [nx.shortest_path_length(G, en[1], p, weight='weight') for p in en_candidates[1]]
-    
     avgthick0 = [paththick0[i]/pathlen0[i] for i in range(max_depth)]
     avgthick1 = [paththick1[i]/pathlen1[i] for i in range(max_depth)]
     
@@ -220,8 +218,8 @@ if __name__=='__main__':
 #     dendrite_ids = np.loadtxt('mito_len500_bead_pair.txt', int)[:,1]
     dendrite_ids = np.loadtxt('data/seg_spiny_v2.txt', int)
     lookuptable = np.zeros((dendrite_ids.shape[0], 5))
-    did = 6659767
-    did = 1499496
+#     did = 6659767
+#     did = 1499496
 
     seg = ReadH5(seg_fn, 'main')
 #     seg = np.array(h5py.File(seg_fn, 'r')['main'])
@@ -252,10 +250,6 @@ if __name__=='__main__':
 #         write_skel_coordinates(skel, main_G_pruned, save_path='node_pos_weightweight_prune5.h5')
 #         write_skel_coordinates(skel, main_G_pruned, save_path='node_pos_weightweight_prune6.h5')
 
-        len(main_G_pruned)
-#         len(main_G)
-#         len(main_G_pruned)
-        
         endnodes = [x for x in main_G.nodes() if main_G.degree(x)==1]
         # get average thickness and length
         length, thickness = edge_length_and_thickness(G, endnodes[0], endnodes[1])
