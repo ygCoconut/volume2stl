@@ -133,20 +133,6 @@ def search_longest_path_efficient(G, weight='weight'):
         else: #cyclic graph
             return _exhaustive(G)
 
-def edge_length_and_thickness(G, node1, node2):
-    length = nx.shortest_path_length(G, node1, node2, weight='weight')
-    # assumption for thickness: path is unique
-    thickness = nx.shortest_path_length(G, node1, node2, weight='thick')
-    print(thickness, length)
-    print(G.nodes)
-    #length can be 0 if only 1 node
-    # todo: add root node 
-    try:
-        thickness /= length
-        return length, thickness
-    except:
-        return 0, 0
-
 def prune_graph(G, threshold=0.15, max_depth=5):
     """
     Endnodes of the main axis can be located in spines instead of stopping at the end
@@ -213,6 +199,7 @@ def get_spines(G, Gma, return_extra=False):
     Grm.remove_nodes_from(list(nx.isolates(Grm))) #rm single nodes
 
     graphs = list(nx.connected_component_subgraphs(Grm)) # get subgraphs
+    graphs = [g for g in graphs if len(g)>2] # rm outliers
     
     if return_extra == True:
         nc_clean = [len(g) for g in graphs if len(g)>2] #rm outliers
@@ -224,7 +211,23 @@ def get_spines(G, Gma, return_extra=False):
     else:
         return graphs # graph_list
 
-        
+
+def edge_length_and_thickness(G, node1, node2):
+    length = nx.shortest_path_length(G, node1, node2, weight='weight')
+    # assumption for thickness: path is unique
+    thickness = nx.shortest_path_length(G, node1, node2, weight='thick')
+    count = len(G)
+#     print(thickness, length)
+#     print(G.nodes)
+#     print(count)
+    #length can be 0 if only 1 node
+    # todo: add root node 
+    try:
+        thickness /= length
+        return length, thickness, count
+    except:
+        return 0, 0, 1
+    
 if __name__=='__main__':
 # if opt=='4': # longest graph path
     print('start')
@@ -269,18 +272,22 @@ if __name__=='__main__':
 #         write_skel_coordinates(skel, main_G_pruned, save_path='node_pos_weightweight_prune5.h5')
 #         write_skel_coordinates(skel, main_G_pruned, save_path='node_pos_weightweight_prune6.h5')
 
-        endnodes = [x for x in main_G.nodes() if main_G.degree(x)==1]
+#         endnodes = [x for x in main_G.nodes() if main_G.degree(x)==1]
+        endnodes = [x for x in main_G_pruned.nodes() if main_G_pruned.degree(x)==1]
         # get average thickness and length
-        length, thickness = edge_length_and_thickness(G, endnodes[0], endnodes[1])
+        length, thickness, _ = edge_length_and_thickness(G, endnodes[0], endnodes[1])
         
         #get spines of the main axis dendrite:
         len_spines = []
         thick_spines = []
-#         spines_G_list = get_spines(G, main_G.nodes)
-        spines_G_list = get_spines2(G, main_G)
-        for spine in spines_G_list:
-            spine_mainG, _, _, endnodes_spine = longest_axis_exhaustive(spine)
-            ln_sp, tk_sp = edge_length_and_thickness(spine, endnodes_spine[0], endnodes_spine[1])
+        S_list = get_spines(G, main_G)
+        for S in S_list:
+            #TODO: renovate this part here !!!!!!!
+            S_main, _ = search_longest_path_efficient(S)
+            len(S_main)
+            en = [x for x in S_main.nodes() if S_main.degree(x)==1] # endnodes
+            ln_sp, tk_sp, ct_sp = edge_length_and_thickness(S_main, en[0], en[1])
+#             n_count = [len(g) for g in graphs if len(g)>2]
 #             len_spines.append(ln_sp)
 #             thick_spines.append(tk_sp)
             len_spines = ln_sp
