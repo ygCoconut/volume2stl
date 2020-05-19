@@ -255,44 +255,28 @@ def edge_length_and_thickness(G, node1, node2):
         return 0, 0#, 1
     
 if __name__=='__main__':
-# if opt=='4': # longest graph path
-    print('start')
-    
-    bfs = 'bfs'; modified_bfs=False 
-#     res = [60,64,64] # z,y,x resolution of skeleton
-#     seg_fn = '/n/pfister_lab2/Lab/donglai/mito/db/30um_human/seg_64nm.h5' # crumbs
-#     seg_fn = '/n/pfister_lab2/Lab/nils/snowproject/seg_64nm_maindendrite.h5' # no crumbs
-#     seg_fn = '/n/pfister_lab2/Lab/donglai/mito/db/30um_human/segv2_16nm.h5' #obsolete
-# #     dendrite_ids = np.loadtxt('mito_len500_bead_pair.txt', int)[:,1]
-# #     dendrite_ids = np.loadtxt('data/seg_spiny_v2.txt', int)
-#     dendrite_ids = np.loadtxt('/n/pfister_lab2/Lab/nils/snowproject/stats_humsegv2/ui500.txt')
-#     dendrite_ids = dendrite_ids[dendrite_ids>0]
 
-# first experiment donglai
-#     res = [30,32,32] # z,y,x resolution of skeleton
-#     seg_fn = '/n/pfister_lab2/Lab/donglai/mito/db/30um_human/seg_32nm.h5'#replacement
-#     dendrite_ids = [11, 12, 13, 16, 17, 18, 20, 24, 25, 26] #handpicked benchm. exps
-#     output_folder = '/n/pfister_lab2/Lab/nils/snowproject/hum_segv2/benchmarks/'
-
-    
+    print('\n--START')
+    bfs = 'bfs'; modified_bfs=False #static
+   
     args = get_args() # get args
     seg_fn = args.seg
     output_folder = args.out
     res = [int(i) for i in args.res.split(':')]
     dendrite_ids = np.array([int(i) for i in args.ids.split(':')])
     
-    print('Read segmentation volume..')
+    print('--Load segmentation volume..')
     seg = ReadH5(seg_fn, 'main')
     
     if args.cs == 1: # only needed if no skeleton created yet
-        print("\nCreate skeletons for given ids:")
+        print("\n--Create skeletons for given ids:")
         for i, did in enumerate(tqdm(dendrite_ids)):
             blockPrint()
             dendrite_folder = '{}/skels/{}/'.format(output_folder, did)
             CreateSkeleton(seg==did, dendrite_folder, res, res)
             enablePrint()
     
-    print("\nAnalyse skeletons for given ids:")
+    print("\n--Analyse skeletons for given ids:")
     lookuptable = np.zeros((dendrite_ids.shape[0], 8))
     for i, did in enumerate(tqdm(dendrite_ids)):
         blockPrint()
@@ -356,5 +340,5 @@ if __name__=='__main__':
                    ' spines_avg_thickness, spines_avg_length, spines_avg_nodes, num_spines',
             fmt=['%d', '%d', '%f', '%f', '%f', '%f', '%f', '%d'] )
         
-    print('done')
+    print('--DONE\n')
 
