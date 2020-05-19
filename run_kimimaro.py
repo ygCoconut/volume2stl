@@ -54,16 +54,18 @@ if __name__ == '__main__':
 #     dendrite_ids = np.loadtxt('data/seg_spiny_v2.txt', int)
 
     
-    # dendrites; task 1
-#     seg_fn = '/n/pfister_lab2/Lab/donglai/mito/db/30um_human/segv2_16nm.h5'
-#     obj_ids = np.loadtxt('/n/pfister_lab2/Lab/nils/snowproject/hum_segv2/ui500.txt')
+    # dendrites; task NILS
+    seg_fn = '/n/pfister_lab2/Lab/donglai/mito/db/30um_human/seg_32nm.h5'
+    obj_ids = np.loadtxt('/n/pfister_lab2/Lab/nils/snowproject/hum_segv2/ui500.txt')
 #     out_f = '/n/pfister_lab2/Lab/nils/snowproject/hum_segv2/skel_16nmv2_kimi/'
-
-    #mito; task 2 [CELINE]
-    seg_fn = '/n/pfister_lab2/Lab/donglai/mito/db/30um_rat/mito_64nm.h5'
-    obj_ids = np.loadtxt('/n/pfister_lab2/Lab/donglai/mito/db/30um_rat/mito_len500_bead.txt', int)
+    out_f = '/n/pfister_lab2/Lab/nils/snowproject/hum_segv2/skel_32nm_kimi/'
     oid = obj_ids[obj_ids>0]
-    out_f = '/n/pfister_lab2/Lab/nils/snowproject/rat_segv2/skel_mito64nm_kimi/'
+
+    #mito; task SILIN
+#     seg_fn = '/n/pfister_lab2/Lab/donglai/mito/db/30um_rat/mito_64nm.h5'
+#     obj_ids = np.loadtxt('/n/pfister_lab2/Lab/donglai/mito/db/30um_rat/mito_len500_bead.txt', int)
+#     oid = obj_ids[obj_ids>0]
+#     out_f = '/n/pfister_lab2/Lab/nils/snowproject/rat_segv2/skel_mito64nm_kimi/'
     
     
     # no crumbs
@@ -74,15 +76,15 @@ if __name__ == '__main__':
         skels = skeletonize(labels, 4, 500, obj_ids=oid.tolist())
         #save skeleton
         print('save skel at {}'.format(out_f))
-        with open('{}/skeleton3.p'.format(out_f), 'wb') as fp:
+        with open('{}/skeleton_job.p'.format(out_f), 'wb') as fp:
             pickle.dump(skels, fp, protocol=pickle.HIGHEST_PROTOCOL)
     else:
         skels = np.load('{}/skeleton.p'.format(out_f), allow_pickle=True)
 
     # get special information:  
-    if False:
+    if True:
         sl = [[k, len(skels[k].vertices),  skels[k].radius.mean()] for k in skels]    
-        writeh5_file(sl, '{}/skel_len.h5'.format(out_f))
+        writeh5_file(sl, '{}/skel_len_rad.h5'.format(out_f))
     
 
     print('done')
