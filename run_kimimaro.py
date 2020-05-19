@@ -96,12 +96,12 @@ if __name__ == '__main__':
 #     skels[1499496].viewer()    
 #     skel_labels = skel.label_skeleton(skels[1499496])
 #     dir(skel_labels)
-#     skels[1499496].vertices *= skel_labels 
+#     skels[1499496].vertices *= skel_labels #might not work
         
 #     skel_labels.max()    
     
+#     This part here is more important:
 #     rl = skels[1499496].clone()
-#     rl.radius[skel_labels==0] = 0
 #     rl.radius[skel_labels==1] = 0
 #     rl.viewer()
     
