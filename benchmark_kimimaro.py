@@ -4,7 +4,8 @@ import numpy as np
 import kimimaro
 import matplotlib.pyplot as plt
 import pickle
-# from spinecode import mesh, skel
+from spinecode import mesh, skel
+from tqdm import tqdm
 
 def get_args():
     parser = argparse.ArgumentParser(description='Compute the skeleton + graph + metrics of segments')
@@ -72,8 +73,50 @@ def skeletonize(labels, scale, const, obj_ids):
     )
     return skels
 
+def extract_main(skeleton_raw):
+    """ 
+    c.f. def crop() at:
+    https://github.com/seung-lab/cloud-volume/blob/master/cloudvolume/skeleton.py, 
+    
+    
+    input: raw skeleton with dendrites and spines
+    process: compute main axis with label_skeleton(), create skel for main and spines
+    return main_axis, spines
+    """
+    
+    if skeleton_raw.empty():
+        return skeleton_raw
+
+
+    def _return_skeleton(nodes_valid_mask):
+        skeleton = skeleton_raw.clone()
+        
+        nodes_valid_idx = np.where(nodes_valid_mask)[0]
+        if nodes_valid_idx.shape[0] == 0: #empty skeleton
+            return 'empty skeleton'
+
+        first_node = nodes_valid_idx[0]
+        skeleton.vertices[~nodes_valid_mask] = skeleton.vertices[first_node]
+
+        edges_valid_mask = np.isin(skeleton.edges, nodes_valid_idx)
+        edges_valid_idx = edges_valid_mask[:,0] * edges_valid_mask[:,1] 
+        skeleton.edges = skeleton.edges[edges_valid_idx,:]
+        return skeleton.consolidate()
+
+    skel_labels = skel.label_skeleton(skeleton_raw).astype(bool)
+    main_ax = _return_skeleton(~skel_labels)
+    if type(main_ax) == str: # string type, 'empty skeleton'
+        main_ax = _return_skeleton(skel_labels)
+        spines = main_ax.clone()
+        spines.vertices = np.zeros_like(skeleton_raw.vertices)
+    else:
+        spines = _return_skeleton(skel_labels)
+    
+    return main_ax, spines
+
+
 if False:
-    from run_kimimaro import *
+    from benchmark_kimimaro import *
 
 if __name__ == '__main__':
     print('start')
@@ -102,7 +145,7 @@ if __name__ == '__main__':
     print('Load segmentation from {}'.format(seg_fn))
     labels = loadh5py(seg_fn)
     
-    if True:
+    if False:
         print('skeletonize..')
         import time
         start_time = time.time()
@@ -113,17 +156,28 @@ if __name__ == '__main__':
             pickle.dump(skels, fp, protocol=pickle.HIGHEST_PROTOCOL)
         print("--- %s seconds ---" % (time.time() - start_time))
     else:
-        skels = np.load('{}/skeleton.p'.format(out_f), allow_pickle=True)
+        skels = np.load('{}/skeleton_job.p'.format(out_f), allow_pickle=True)
 
     # get special information:  
-    if True:
-        sl = [[k, len(skels[k].vertices),  skels[k].radius.mean()] for k in skels]    
+    if False:
+        sl = [[k, len(skels[k].vertices),  skels[k].radius.mean()] for k in skels]  
         writeh5_file(sl, '{}/skel_len_rad.h5'.format(out_f))
+        
+    print('create main axis and spine files')
+    for s in tqdm(skels.keys()):
+        skel_main, skel_spines = extract_main(skels[s])
+        # drop coordinates as h5 file:
+        save_path=f"{out_f}/skels/{s}/skel_points_kimi_main_task-1.h5"
+        writeh5_file_compress(skel_main.vertices, save_path)
+        save_path=f"{out_f}/skels/{s}/skel_points_kimi_spines_task-1.h5"
+        writeh5_file_compress(skel_spines.vertices, save_path)
     
 
     print('done')
 
     
+
+
     
     # Try things out in console:
 #     print('run skeleton --> dendrites and spines')
@@ -138,7 +192,9 @@ if __name__ == '__main__':
     
 #     This part here is more important:
 #     rl = skels[1499496].clone()
-#     rl.radius[skel_labels==1] = 0
+#     rl = skels[17].clone()
+# #     rl.radius[skel_labels==1] = 0
+#     rl.radius[skel_labels==0] = 0
 #     rl.viewer()
     
 
