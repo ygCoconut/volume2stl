@@ -13,6 +13,13 @@ def writeh5_file(file, filename):
     hf = h5py.File(filename, 'w')
     hf.create_dataset('main', data=file)
     hf.close()
+    
+def writeh5_file_compress(dtarray, filename):
+    datasetname = 'main'
+    fid=h5py.File(filename,'w')
+    ds = fid.create_dataset(datasetname, dtarray.shape, compression="gzip", dtype=dtarray.dtype)
+    ds[:] = dtarray
+    fid.close()
 
 # LISTING 1: Producing Skeletons from a labeled image.
 def skeletonize(labels, scale, const, obj_ids):
@@ -60,6 +67,7 @@ if __name__ == '__main__':
 #     out_f = '/n/pfister_lab2/Lab/nils/snowproject/hum_segv2/skel_16nmv2_kimi/'
     out_f = '/n/pfister_lab2/Lab/nils/snowproject/hum_segv2/skel_32nm_kimi/'
     oid = obj_ids[obj_ids>0]
+#     oid = [11, 12, 13, 16, 17, 18, 20, 24, 25, 26]
 
     #mito; task SILIN
 #     seg_fn = '/n/pfister_lab2/Lab/donglai/mito/db/30um_rat/mito_64nm.h5'
@@ -73,7 +81,7 @@ if __name__ == '__main__':
     labels = loadh5py(seg_fn)
     
     if True:
-        skels = skeletonize(labels, 4, 500, obj_ids=oid.tolist())
+        skels = skeletonize(labels, 4, 500, obj_ids=list(oid))
         #save skeleton
         print('save skel at {}'.format(out_f))
         with open('{}/skeleton_job.p'.format(out_f), 'wb') as fp:

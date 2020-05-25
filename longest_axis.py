@@ -294,53 +294,58 @@ if __name__=='__main__':
     #         main_G, _, _, endnodes = search_longest_path_exhaustive(G)
     #         weight = 'weight' # longest path based on edge parameter weigth
             weight = 'weight' # longest path based on edge parameter weigth
-            main_G, length = search_longest_path_efficient(G, weight=weight)
-            if len(main_G)<=10: #hardcoded, 10 nodes needs to be bigger than max_depth
-                endnodes = [x for x in main_G.nodes() if main_G.degree(x)==1]
-                length, thickness = edge_length_and_thickness(main_G, endnodes[0], endnodes[1])
-                lookuptable[i] = [did, len(main_G), thickness, length, 0, 0, 0, 0]
-                continue
+        elif args.task ==1:
+            weight = 'thick'
+        
+    ### Content for benchmark START
+        main_G, length = search_longest_path_efficient(G, weight=weight)
+        if len(main_G)<=10: #hardcoded, 10 nodes needs to be bigger than max_depth
+            endnodes = [x for x in main_G.nodes() if main_G.degree(x)==1]
+            length, thickness = edge_length_and_thickness(main_G, endnodes[0], endnodes[1])
+            lookuptable[i] = [did, len(main_G), thickness, length, 0, 0, 0, 0]
+            continue
 
-            main_G_pruned = prune_graph(main_G, threshold=0.15, max_depth=5)
+        if args.ws: #write skeleton
+            write_skel_coordinates(skel, main_G, save_path=
+'{}/skels/{}/{}_task{}.h5'.format(output_folder, did, args.ws, args.task))
+#                            save_path='node_pos_weightweight_noprune5.h5')
 
-            if args.ws: #write skeleton
-                write_skel_coordinates(skel, main_G, save_path=
-    '{}/skels/{}/{}_task{}.h5'.format(output_folder, did, args.ws, args.task))
-    #                            save_path='node_pos_weightweight_noprune5.h5')
+        main_G_pruned = prune_graph(main_G, threshold=0.15, max_depth=5)
 
-            endnodes = [x for x in main_G_pruned.nodes() if main_G_pruned.degree(x)==1]
-            if not endnodes: #graphs that do not have any nodes left after pruning = outliers
-                endnodes = [x for x in main_G.nodes() if main_G.degree(x)==1]
-                length, thickness = edge_length_and_thickness(main_G, endnodes[0], endnodes[1])
-                lookuptable[i] = [did, len(main_G), thickness, length, 0, 0, 0, 0]
-                continue
-            # get average thickness and length
-            length, thickness = edge_length_and_thickness(main_G_pruned, endnodes[0], endnodes[1])
+        endnodes = [x for x in main_G_pruned.nodes() if main_G_pruned.degree(x)==1]
+        if not endnodes: #graphs that do not have any nodes left after pruning = outliers
+            endnodes = [x for x in main_G.nodes() if main_G.degree(x)==1]
+            length, thickness = edge_length_and_thickness(main_G, endnodes[0], endnodes[1])
+            lookuptable[i] = [did, len(main_G), thickness, length, 0, 0, 0, 0]
+            continue
+        # get average thickness and length
+        length, thickness = edge_length_and_thickness(main_G_pruned, endnodes[0], endnodes[1])
 
-            #get spines of the main axis dendrite:
-            len_spines = []
-            thick_spines = []
-            S_list = get_spines(G, main_G)
-            for S in S_list:
-                #TODO: renovate this part here !!!!!!!
-                S_main, _ = search_longest_path_efficient(S)
-                en = [x for x in S_main.nodes() if S_main.degree(x)==1] # endnodes
-                ln_sp, tk_sp = edge_length_and_thickness(S_main, en[0], en[1])
-                len_spines.append(ln_sp)
-                thick_spines.append(tk_sp)
+        #get spines of the main axis dendrite:
+        len_spines = []
+        thick_spines = []
+        S_list = get_spines(G, main_G)
+        for S in S_list:
+            #TODO: renovate this part here !!!!!!!
+            S_main, _ = search_longest_path_efficient(S)
+            en = [x for x in S_main.nodes() if S_main.degree(x)==1] # endnodes
+            ln_sp, tk_sp = edge_length_and_thickness(S_main, en[0], en[1])
+            len_spines.append(ln_sp)
+            thick_spines.append(tk_sp)
 
-            nc_clean = [len(g) for g in S_list if len(g)>2]
-            nc_mean = 0 if not nc_clean else np.mean(nc_clean)
-            lookuptable[i] = [did, len(main_G), thickness, length, 
-                              np.mean(thick_spines), np.mean(len_spines), 
-                              nc_mean, len(S_list)]
-
-        save_lot(lookuptable, '{}/lookuptable_task{}.txt'.format(output_folder, args.task) # backup saving
+        nc_clean = [len(g) for g in S_list if len(g)>2]
+        nc_mean = 0 if not nc_clean else np.mean(nc_clean)
+        lookuptable[i] = [did, len(main_G), thickness, length, 
+                          np.mean(thick_spines), np.mean(len_spines), 
+                          nc_mean, len(S_list)]
+        
+    ### Content for benchmark END
+        save_lot(lookuptable, '{}/lookuptable_task{}.txt'.format(output_folder, args.task)) # backup saving
         enablePrint()
     
     #sorted saving
     lot_s = lookuptable[np.argsort(-lookuptable[:,2])]
-    save_lot(lot_s, '{}/lookuptable_task{}.txt'.format(output_folder, args.task) 
+    save_lot(lot_s, '{}/lookuptable_task{}.txt'.format(output_folder, args.task)) 
         
     print('--DONE\n')
 
