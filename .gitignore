@@ -1,2 +1,3 @@
 # this is the ignore file
 .ipynb_checkpoints*
+figures/
