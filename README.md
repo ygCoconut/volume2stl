@@ -1,6 +1,14 @@
 # volume2stl
 This repo helps you to transform a volume array to a .stl file and then visualize it.
 
+## Sidenote:
+kimimaro requires the following installations when used on rc cluster:
+```
+conda install cython
+module load gcc # or module load g++
+conda install numpy
+pip install kimimaro
+```
 
 # PROTOTYPE A
 
