@@ -289,28 +289,35 @@ if __name__=='__main__':
         G, skel = skeleton2graph(did, dendrite_folder, seg, res)
         
         
-        if args.task == 0:
-            # %% get longest axis 
-    #         main_G, _, _, endnodes = search_longest_path_exhaustive(G)
-    #         weight = 'weight' # longest path based on edge parameter weigth
+        # %% get longest axis 
+        if args.task == 0 or args.task == 3: # distance based methods
+    #         main_G, _, _, endnodes = search_longest_path_exhaustive(G) 
             weight = 'weight' # longest path based on edge parameter weigth
-        elif args.task ==1:
-            weight = 'thick'
+        elif args.task ==1 or args.task == 4:
+            weight = 'thick' # longest path based on edge parameter weigth
+            
+        elif args.task == 2 or args.task == 5:
+            weight = 'None' # assuming same const distance betw. neighbour verts.
         
-    ### Content for benchmark START
+        ### Content for benchmark START
         main_G, length = search_longest_path_efficient(G, weight=weight)
+        
+        # identify outliers with less than 10 nodes
         if len(main_G)<=10: #hardcoded, 10 nodes needs to be bigger than max_depth
             endnodes = [x for x in main_G.nodes() if main_G.degree(x)==1]
             length, thickness = edge_length_and_thickness(main_G, endnodes[0], endnodes[1])
             lookuptable[i] = [did, len(main_G), thickness, length, 0, 0, 0, 0]
             continue
 
+        if args.task == 0 or args.task == 1 or args.task == 2: # 'ours' pruning method
+            main_G_pruned = prune_graph(main_G, threshold=0.15, max_depth=5)
+        elif args.task == 3 or args.task == 4 or args.task == 5: #no pruning
+            main_G_pruned = main_G
+            
         if args.ws: #write skeleton
-            write_skel_coordinates(skel, main_G, save_path=
+            write_skel_coordinates(skel, main_G_pruned, save_path=
 '{}/skels/{}/{}_task{}.h5'.format(output_folder, did, args.ws, args.task))
-#                            save_path='node_pos_weightweight_noprune5.h5')
 
-        main_G_pruned = prune_graph(main_G, threshold=0.15, max_depth=5)
 
         endnodes = [x for x in main_G_pruned.nodes() if main_G_pruned.degree(x)==1]
         if not endnodes: #graphs that do not have any nodes left after pruning = outliers
