@@ -48,11 +48,6 @@ python PCA_mesh.py
 3 Get access to x-server:
 -
 - e.g. Download .stl files and git repo to local machine
-```
-# locally:
-scp -r \
-nwendt@login.rc.fas.harvard.edu:/n/home00/nwendt/snowjournal/volume2stl/stl_mitos_dendrites_length_500 ./
-```
 
 4 Run vtkplotlib to obtain .png from .stl
 -
@@ -75,9 +70,6 @@ python create_figures.py
 -
 - Display images in a grid:
     - Find way to iterate through images:
-```
-http://140.247.107.10/donglai/public/js-demo/demo/display_grid.htm
-```
 
 
 - Option B:
